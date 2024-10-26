@@ -1,0 +1,17 @@
+version: "3"
+
+set: [errexit, nounset, pipefail, xtrace]
+
+tasks:
+  lint:
+    cmds:
+      - golangci-lint run ./...
+      - govulncheck ./...
+
+  test:
+    cmds:
+      - go test ./...
+
+  run:
+    cmds:
+      - go run --race .
