@@ -80,7 +80,7 @@ func TestAttackValidate(t *testing.T) {
 				Dice:                 dice.Dice(42),
 				DiceCnt:              0,
 				Charges:              -1,
-				IsBlast:              false,
+				IsBlast:              true,
 			},
 			wantErrCnt: 4,
 		},
