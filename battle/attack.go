@@ -32,6 +32,10 @@ type Attack struct {
 func (a *Attack) Validate() error {
 	var errs []error
 
+	if len(a.Name) == 0 {
+		errs = append(errs, errors.New("attack must have a name"))
+	}
+
 	switch a.TargetCharacteristic {
 	case STR, DEX, WIL:
 		// OK

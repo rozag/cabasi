@@ -34,6 +34,10 @@ type Creature struct {
 func (c *Creature) Validate() error {
 	var errs []error
 
+	if len(c.Name) == 0 {
+		errs = append(errs, errors.New("creature must have a name"))
+	}
+
 	if len(c.Attacks) == 0 {
 		errs = append(errs, errors.New("creature must have at least one attack"))
 	}
@@ -46,43 +50,33 @@ func (c *Creature) Validate() error {
 	if c.STR < CharacteristicMin || c.STR > CharacteristicMax {
 		errs = append(errs, fmt.Errorf(
 			"STR must be between %d and %d, got %d",
-			CharacteristicMin,
-			CharacteristicMax,
-			c.STR,
+			CharacteristicMin, CharacteristicMax, c.STR,
 		))
 	}
 
 	if c.DEX < CharacteristicMin || c.DEX > CharacteristicMax {
 		errs = append(errs, fmt.Errorf(
 			"DEX must be between %d and %d, got %d",
-			CharacteristicMin,
-			CharacteristicMax,
-			c.DEX,
+			CharacteristicMin, CharacteristicMax, c.DEX,
 		))
 	}
 
 	if c.WIL < CharacteristicMin || c.WIL > CharacteristicMax {
 		errs = append(errs, fmt.Errorf(
 			"WIL must be between %d and %d, got %d",
-			CharacteristicMin,
-			CharacteristicMax,
-			c.WIL,
+			CharacteristicMin, CharacteristicMax, c.WIL,
 		))
 	}
 
 	if c.HP < HPMin {
 		errs = append(errs, fmt.Errorf(
-			"HP must be at least %d, got %d",
-			HPMin,
-			c.HP,
+			"HP must be at least %d, got %d", HPMin, c.HP,
 		))
 	}
 
 	if c.Armor > ArmorMax {
 		errs = append(errs, fmt.Errorf(
-			"Armor must be at most %d, got %d",
-			ArmorMax,
-			c.Armor,
+			"Armor must be at most %d, got %d", ArmorMax, c.Armor,
 		))
 	}
 
