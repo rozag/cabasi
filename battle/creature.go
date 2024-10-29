@@ -16,6 +16,7 @@ const ArmorMax = 3
 
 // Creature represents a creature in a battle - a player or a monster.
 type Creature struct {
+	ID           string
 	Name         string
 	Attacks      []Attack
 	STR          uint8
@@ -33,6 +34,10 @@ type Creature struct {
 // one.
 func (c *Creature) Validate() error {
 	var errs []error
+
+	if len(c.ID) == 0 {
+		errs = append(errs, errors.New("creature must have an ID"))
+	}
 
 	if len(c.Name) == 0 {
 		errs = append(errs, errors.New("creature must have a name"))

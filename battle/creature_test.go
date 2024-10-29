@@ -8,12 +8,9 @@ import (
 
 func TestCreatureValidate(t *testing.T) {
 	spear := Attack{
-		Name:                 "Spear",
-		TargetCharacteristic: STR,
-		Dice:                 dice.D6,
-		DiceCnt:              1,
-		Charges:              -1,
-		IsBlast:              false,
+		Name: "Spear", TargetCharacteristic: STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
 	}
 	tests := []struct {
 		name       string
@@ -23,27 +20,26 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "ValidCreature",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 0,
 		},
 		{
+			name: "EmptyID",
+			creature: Creature{
+				ID: "", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			wantErrCnt: 1,
+		},
+		{
 			name: "EmptyName",
 			creature: Creature{
-				Name:         "",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -51,13 +47,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "NilAttacks",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      nil,
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: nil,
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -65,13 +56,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "EmptyAttacks",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{},
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -79,22 +65,15 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "InvalidAttack",
 			creature: Creature{
-				Name: "Root Goblin",
+				ID: "monster-0", Name: "Root Goblin",
 				Attacks: []Attack{
 					{
-						Name:                 "",
-						TargetCharacteristic: STR,
-						Dice:                 dice.D6,
-						DiceCnt:              1,
-						Charges:              -1,
-						IsBlast:              false,
+						Name: "", TargetCharacteristic: STR,
+						Dice: dice.D6, DiceCnt: 1, Charges: -1,
+						IsBlast: false,
 					},
 				},
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -102,13 +81,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "STRTooLow",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          0,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 0, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -116,13 +90,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "STRTooHigh",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          21,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 21, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -130,13 +99,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "DEXTooLow",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          0,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -144,13 +108,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "DEXTooHigh",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          21,
-				WIL:          8,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 21, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -158,13 +117,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "WILTooLow",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          14,
-				WIL:          0,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 0, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -172,13 +126,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "WILTooHigh",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          14,
-				WIL:          21,
-				HP:           4,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 21, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -186,13 +135,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "HPTooLow",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           0,
-				Armor:        0,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 0, Armor: 0,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -200,13 +144,8 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "ArmorTooHigh",
 			creature: Creature{
-				Name:         "Root Goblin",
-				Attacks:      []Attack{spear},
-				STR:          8,
-				DEX:          14,
-				WIL:          8,
-				HP:           4,
-				Armor:        4,
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 4,
 				IsDetachment: false,
 			},
 			wantErrCnt: 1,
@@ -214,16 +153,11 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "MultipleErrors",
 			creature: Creature{
-				Name:         "",
-				Attacks:      []Attack{},
-				STR:          21,
-				DEX:          0,
-				WIL:          21,
-				HP:           0,
-				Armor:        21,
+				ID: "", Name: "", Attacks: []Attack{},
+				STR: 21, DEX: 0, WIL: 21, HP: 0, Armor: 21,
 				IsDetachment: true,
 			},
-			wantErrCnt: 7,
+			wantErrCnt: 8,
 		},
 	}
 	for _, test := range tests {
