@@ -206,9 +206,52 @@ func TestAttackEquals(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := test.this.Equals(test.other); got != test.want {
-				t.Errorf("Attack.Equals() = %v, want %v", got, test.want)
+			if got := test.this.Equals(&test.other); got != test.want {
+				t.Fatalf("Attack.Equals() = %v, want %v", got, test.want)
 			}
 		})
+	}
+}
+
+func TestAttackDeepCopy(t *testing.T) {
+	original := Attack{
+		Name: "Knife", TargetCharacteristic: STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	copied := original.DeepCopy()
+
+	if !original.Equals(copied) {
+		t.Fatalf("Attack.DeepCopy() = %v, want %v", copied, original)
+	}
+
+	copied.Name = "Sword"
+	copied.TargetCharacteristic = DEX
+	copied.Dice = dice.D8
+	copied.DiceCnt = 2
+	copied.Charges = 1
+	copied.IsBlast = true
+
+	if original.Equals(copied) {
+		t.Errorf("modifying the copy affected the original: %v", original)
+	}
+
+	if original.Name == copied.Name {
+		t.Errorf("original.Name == copied.Name")
+	}
+	if original.TargetCharacteristic == copied.TargetCharacteristic {
+		t.Errorf("original.TargetCharacteristic == copied.TargetCharacteristic")
+	}
+	if original.Dice == copied.Dice {
+		t.Errorf("original.Dice == copied.Dice")
+	}
+	if original.DiceCnt == copied.DiceCnt {
+		t.Errorf("original.DiceCnt == copied.DiceCnt")
+	}
+	if original.Charges == copied.Charges {
+		t.Errorf("original.Charges == copied.Charges")
+	}
+	if original.IsBlast == copied.IsBlast {
+		t.Errorf("original.IsBlast == copied.IsBlast")
 	}
 }
