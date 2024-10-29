@@ -81,3 +81,21 @@ func (a *Attack) DeepCopy() *Attack {
 		IsBlast:              a.IsBlast,
 	}
 }
+
+// AttackSlice is a `[]Attack` with helper methods.
+type AttackSlice []Attack
+
+// Equals checks if the AttackSlice is equal to the other AttackSlice.
+func (this AttackSlice) Equals(other AttackSlice) bool {
+	if len(this) != len(other) {
+		return false
+	}
+
+	for i := range this {
+		if !this[i].Equals(&other[i]) {
+			return false
+		}
+	}
+
+	return true
+}

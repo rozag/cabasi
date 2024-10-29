@@ -156,3 +156,55 @@ func TestRunValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestRunDoesNotMutateCreatures(t *testing.T) {
+	rng := dummyRNG{}
+	log := dummyLog{}
+	spear := Attack{
+		Name: "Spear", TargetCharacteristic: STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	originalPlayers := []Creature{
+		{
+			ID: "player-0", Name: "John Appleseed", Attacks: []Attack{spear},
+			STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+			IsDetachment: false,
+		},
+	}
+	originalMonsters := []Creature{
+		{
+			ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+			STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+			IsDetachment: false,
+		},
+	}
+
+	players := make([]Creature, len(originalPlayers))
+	for i, player := range originalPlayers {
+		copied := player.DeepCopy()
+		players[i] = *copied
+	}
+
+	monsters := make([]Creature, len(originalMonsters))
+	for i, monster := range originalMonsters {
+		copied := monster.DeepCopy()
+		monsters[i] = *copied
+	}
+
+	_, err := Run(rng, log, players, monsters)
+	if err != nil {
+		t.Fatalf("Run(): want nil error, got %v", err)
+	}
+
+	if !CreatureSlice(originalPlayers).Equals(players) {
+		t.Fatalf(
+			"Run(): players mutated, want %v, got %v", originalPlayers, players,
+		)
+	}
+	if !CreatureSlice(originalMonsters).Equals(monsters) {
+		t.Fatalf(
+			"Run(): monsters mutated, want %v, got %v", originalMonsters, monsters,
+		)
+	}
+}

@@ -98,7 +98,7 @@ func (this *Creature) Equals(other *Creature) bool {
 		this.HP == other.HP &&
 		this.Armor == other.Armor &&
 		this.IsDetachment == other.IsDetachment &&
-		attackSlice(this.Attacks).equal(attackSlice(other.Attacks))
+		AttackSlice(this.Attacks).Equals(AttackSlice(other.Attacks))
 }
 
 // DeepCopy creates a deep copy of the Creature.
@@ -121,9 +121,11 @@ func (c *Creature) DeepCopy() *Creature {
 	}
 }
 
-type attackSlice []Attack
+// CreatureSlice is a `[]Creature` with helper methods.
+type CreatureSlice []Creature
 
-func (this attackSlice) equal(other attackSlice) bool {
+// Equals checks if the CreatureSlice is equal to the other CreatureSlice.
+func (this CreatureSlice) Equals(other CreatureSlice) bool {
 	if len(this) != len(other) {
 		return false
 	}

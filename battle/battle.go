@@ -84,10 +84,27 @@ func Run(rng dice.RNG, log Log, players, monsters []Creature) (bool, error) {
 		return false, errors.Join(errs...)
 	}
 
-	return run(rng, log, players, monsters), nil
+	playersCopy := make([]Creature, len(players))
+	for i, player := range players {
+		copied := player.DeepCopy()
+		playersCopy[i] = *copied
+	}
+
+	monstersCopy := make([]Creature, len(monsters))
+	for i, monster := range monsters {
+		copied := monster.DeepCopy()
+		monstersCopy[i] = *copied
+	}
+
+	havePlayersWon := run(rng, log, playersCopy, monstersCopy)
+	return havePlayersWon, nil
 }
 
 func run(rng dice.RNG, log Log, players, monsters []Creature) bool {
+	players[0].Name = "Player One"                     // TODO: remove
+	players[0].Attacks[0].Name = "Player Attack One"   // TODO: remove
+	monsters[0].Name = "Monster One"                   // TODO: remove
+	monsters[0].Attacks[0].Name = "Monster Attack One" // TODO: remove
 	// TODO:
 	return false
 }

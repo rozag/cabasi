@@ -406,7 +406,7 @@ func TestCreatureDeepCopy(t *testing.T) {
 	if original.Name == copied.Name {
 		t.Errorf("original.Name == copied.Name")
 	}
-	if attackSlice(original.Attacks).equal(attackSlice(copied.Attacks)) {
+	if AttackSlice(original.Attacks).Equals(AttackSlice(copied.Attacks)) {
 		t.Errorf("original.Attacks == copied.Attacks")
 	}
 	if original.STR == copied.STR {
