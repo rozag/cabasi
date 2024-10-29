@@ -98,3 +98,117 @@ func TestAttackValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestAttackEquals(t *testing.T) {
+	tests := []struct {
+		name        string
+		this, other Attack
+		want        bool
+	}{
+		{
+			name: "EqualAttacks",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			want: true,
+		},
+		{
+			name: "DifferentName",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Sword", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentTargetCharacteristic",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Knife", TargetCharacteristic: DEX,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentDice",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D8, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentDiceCnt",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 2, Charges: -1,
+				IsBlast: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentCharges",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: 1,
+				IsBlast: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentIsBlast",
+			this: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: false,
+			},
+			other: Attack{
+				Name: "Knife", TargetCharacteristic: STR,
+				Dice: dice.D6, DiceCnt: 1, Charges: -1,
+				IsBlast: true,
+			},
+			want: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.this.Equals(test.other); got != test.want {
+				t.Errorf("Attack.Equals() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}

@@ -29,7 +29,7 @@ type Attack struct {
 // Validate checks if the freshly created attack is valid. It returns an error
 // with `Unwrap() []error` method to get all the errors or `nil` if the attack
 // is valid.
-func (a *Attack) Validate() error {
+func (a Attack) Validate() error {
 	var errs []error
 
 	if len(a.Name) == 0 {
@@ -58,4 +58,20 @@ func (a *Attack) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// Equals checks if the Attack is equal to the other Attack.
+func (this Attack) Equals(other Attack) bool {
+	return this.Name == other.Name &&
+		this.TargetCharacteristic == other.TargetCharacteristic &&
+		this.Dice == other.Dice &&
+		this.DiceCnt == other.DiceCnt &&
+		this.Charges == other.Charges &&
+		this.IsBlast == other.IsBlast
+}
+
+// DeepCopy creates a deep copy of the Attack.
+func (a Attack) DeepCopy() Attack {
+	// TODO:
+	return a
 }
