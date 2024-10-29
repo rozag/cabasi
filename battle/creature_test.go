@@ -193,3 +193,178 @@ func TestCreatureValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestCreatureEquals(t *testing.T) {
+	spear := Attack{
+		Name: "Spear", TargetCharacteristic: STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	tests := []struct {
+		name        string
+		this, other Creature
+		want        bool
+	}{
+		{
+			name: "EqualCreatures",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: true,
+		},
+		{
+			name: "DifferentID",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-1", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentName",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Boot Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentAttacks",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin",
+				Attacks: []Attack{
+					{
+						Name: "Spear", TargetCharacteristic: STR,
+						Dice: dice.D6, DiceCnt: 1, Charges: -1,
+						IsBlast: false,
+					},
+				},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin",
+				Attacks: []Attack{
+					{
+						Name: "Sword", TargetCharacteristic: STR,
+						Dice: dice.D6, DiceCnt: 1, Charges: -1,
+						IsBlast: false,
+					},
+				},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentSTR",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 9, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentDEX",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 15, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentWIL",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 9, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentHP",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 5, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentArmor",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DifferentIsDetachment",
+			this: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			other: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: true,
+			},
+			want: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.this.Equals(test.other); got != test.want {
+				t.Errorf("Creature.Equals() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}

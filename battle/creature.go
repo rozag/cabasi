@@ -3,6 +3,7 @@ package battle
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 const (
@@ -32,7 +33,7 @@ type Creature struct {
 // is valid. Validate is not meant to be used on a Creature in the middle of
 // a battle (with decreased characteristics), but rather on a freshly created
 // one.
-func (c *Creature) Validate() error {
+func (c Creature) Validate() error {
 	var errs []error
 
 	if len(c.ID) == 0 {
@@ -86,4 +87,23 @@ func (c *Creature) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// Equals checks if the Creature is equal to the other Creature.
+func (this Creature) Equals(other Creature) bool {
+	return this.ID == other.ID &&
+		this.Name == other.Name &&
+		this.STR == other.STR &&
+		this.DEX == other.DEX &&
+		this.WIL == other.WIL &&
+		this.HP == other.HP &&
+		this.Armor == other.Armor &&
+		this.IsDetachment == other.IsDetachment &&
+		slices.EqualFunc(this.Attacks, other.Attacks, Attack.Equals)
+}
+
+// DeepCopy creates a deep copy of the Creature.
+func (c Creature) DeepCopy() Creature {
+	// TODO:
+	return c
 }
