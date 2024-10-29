@@ -3,7 +3,6 @@ package battle
 import (
 	"errors"
 	"fmt"
-	"slices"
 )
 
 const (
@@ -33,7 +32,7 @@ type Creature struct {
 // is valid. Validate is not meant to be used on a Creature in the middle of
 // a battle (with decreased characteristics), but rather on a freshly created
 // one.
-func (c Creature) Validate() error {
+func (c *Creature) Validate() error {
 	var errs []error
 
 	if len(c.ID) == 0 {
@@ -90,7 +89,7 @@ func (c Creature) Validate() error {
 }
 
 // Equals checks if the Creature is equal to the other Creature.
-func (this Creature) Equals(other Creature) bool {
+func (this *Creature) Equals(other *Creature) bool {
 	return this.ID == other.ID &&
 		this.Name == other.Name &&
 		this.STR == other.STR &&
@@ -99,11 +98,41 @@ func (this Creature) Equals(other Creature) bool {
 		this.HP == other.HP &&
 		this.Armor == other.Armor &&
 		this.IsDetachment == other.IsDetachment &&
-		slices.EqualFunc(this.Attacks, other.Attacks, Attack.Equals)
+		attackSlice(this.Attacks).equal(attackSlice(other.Attacks))
 }
 
 // DeepCopy creates a deep copy of the Creature.
-func (c Creature) DeepCopy() Creature {
-	// TODO:
-	return c
+func (c *Creature) DeepCopy() *Creature {
+	attacks := make([]Attack, len(c.Attacks))
+	for i, attack := range c.Attacks {
+		copied := attack.DeepCopy()
+		attacks[i] = *copied
+	}
+	return &Creature{
+		ID:           c.ID,
+		Name:         c.Name,
+		Attacks:      attacks,
+		STR:          c.STR,
+		DEX:          c.DEX,
+		WIL:          c.WIL,
+		HP:           c.HP,
+		Armor:        c.Armor,
+		IsDetachment: c.IsDetachment,
+	}
+}
+
+type attackSlice []Attack
+
+func (this attackSlice) equal(other attackSlice) bool {
+	if len(this) != len(other) {
+		return false
+	}
+
+	for i := range this {
+		if !this[i].Equals(&other[i]) {
+			return false
+		}
+	}
+
+	return true
 }

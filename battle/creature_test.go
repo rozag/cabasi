@@ -362,9 +362,69 @@ func TestCreatureEquals(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := test.this.Equals(test.other); got != test.want {
-				t.Errorf("Creature.Equals() = %v, want %v", got, test.want)
+			if got := test.this.Equals(&test.other); got != test.want {
+				t.Fatalf("Creature.Equals() = %v, want %v", got, test.want)
 			}
 		})
+	}
+}
+
+func TestCreatureDeepCopy(t *testing.T) {
+	spear := Attack{
+		Name: "Spear", TargetCharacteristic: STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	original := Creature{
+		ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+		IsDetachment: false,
+	}
+	copied := original.DeepCopy()
+
+	if !original.Equals(copied) {
+		t.Fatalf("Creature.DeepCopy() = %v, want %v", copied, original)
+	}
+
+	copied.ID = "monster-1"
+	copied.Name = "Boot Goblin"
+	copied.Attacks[0].Name = "Sword"
+	copied.STR = 9
+	copied.DEX = 15
+	copied.WIL = 9
+	copied.HP = 5
+	copied.Armor = 1
+	copied.IsDetachment = true
+
+	if original.Equals(copied) {
+		t.Errorf("modifying the copy affected the original: %v", original)
+	}
+
+	if original.ID == copied.ID {
+		t.Errorf("original.ID == copied.ID")
+	}
+	if original.Name == copied.Name {
+		t.Errorf("original.Name == copied.Name")
+	}
+	if attackSlice(original.Attacks).equal(attackSlice(copied.Attacks)) {
+		t.Errorf("original.Attacks == copied.Attacks")
+	}
+	if original.STR == copied.STR {
+		t.Errorf("original.STR == copied.STR")
+	}
+	if original.DEX == copied.DEX {
+		t.Errorf("original.DEX == copied.DEX")
+	}
+	if original.WIL == copied.WIL {
+		t.Errorf("original.WIL == copied.WIL")
+	}
+	if original.HP == copied.HP {
+		t.Errorf("original.HP == copied.HP")
+	}
+	if original.Armor == copied.Armor {
+		t.Errorf("original.Armor == copied.Armor")
+	}
+	if original.IsDetachment == copied.IsDetachment {
+		t.Errorf("original.IsDetachment == copied.IsDetachment")
 	}
 }
