@@ -1,5 +1,7 @@
 package dice
 
+import "fmt"
+
 type Dice uint8
 
 const (
@@ -10,6 +12,26 @@ const (
 	D12 Dice = 12
 	D20 Dice = 20
 )
+
+// String returns the string representation of the Dice.
+func (d Dice) String() string {
+	switch d {
+	case D4:
+		return "D4"
+	case D6:
+		return "D6"
+	case D8:
+		return "D8"
+	case D10:
+		return "D10"
+	case D12:
+		return "D12"
+	case D20:
+		return "D20"
+	default:
+		panic(fmt.Errorf("unknown Dice: %d", d))
+	}
+}
 
 type RNG interface {
 	// UintN returns, as a uint, a non-negative pseudo-random number in the

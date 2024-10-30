@@ -3,6 +3,7 @@ package battle
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -25,6 +26,32 @@ type Creature struct {
 	HP           uint8
 	Armor        uint8
 	IsDetachment bool
+}
+
+// String returns the string representation of the Creature.
+func (c *Creature) String() string {
+	return fmt.Sprintf(
+		"Creature{"+
+			"ID: %q"+
+			", Name: %q"+
+			", Attacks: %s"+
+			", STR: %d"+
+			", DEX: %d"+
+			", WIL: %d"+
+			", HP: %d"+
+			", Armor: %d"+
+			", IsDetachment: %t"+
+			"}",
+		c.ID,
+		c.Name,
+		AttackSlice(c.Attacks),
+		c.STR,
+		c.DEX,
+		c.WIL,
+		c.HP,
+		c.Armor,
+		c.IsDetachment,
+	)
 }
 
 // Validate checks if the freshly created creature is valid. It returns an error
@@ -123,6 +150,20 @@ func (c *Creature) DeepCopy() *Creature {
 
 // CreatureSlice is a `[]Creature` with helper methods.
 type CreatureSlice []Creature
+
+// String returns the string representation of the CreatureSlice.
+func (cs CreatureSlice) String() string {
+	var sb strings.Builder
+	sb.WriteString("[]Creature{")
+	for i, c := range cs {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(c.String())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
 
 // Equals checks if the CreatureSlice is equal to the other CreatureSlice.
 func (this CreatureSlice) Equals(other CreatureSlice) bool {
