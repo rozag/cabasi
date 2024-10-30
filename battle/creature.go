@@ -129,13 +129,13 @@ func (this *Creature) Equals(other *Creature) bool {
 }
 
 // DeepCopy creates a deep copy of the Creature.
-func (c *Creature) DeepCopy() *Creature {
+func (c *Creature) DeepCopy() Creature {
 	attacks := make([]Attack, len(c.Attacks))
 	for i, attack := range c.Attacks {
 		copied := attack.DeepCopy()
-		attacks[i] = *copied
+		attacks[i] = copied
 	}
-	return &Creature{
+	return Creature{
 		ID:           c.ID,
 		Name:         c.Name,
 		Attacks:      attacks,

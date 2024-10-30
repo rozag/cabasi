@@ -382,7 +382,7 @@ func TestCreatureDeepCopy(t *testing.T) {
 	}
 	copied := original.DeepCopy()
 
-	if !original.Equals(copied) {
+	if !original.Equals(&copied) {
 		t.Fatalf("Creature.DeepCopy() = %v, want %v", copied, original)
 	}
 
@@ -396,7 +396,7 @@ func TestCreatureDeepCopy(t *testing.T) {
 	copied.Armor = 1
 	copied.IsDetachment = true
 
-	if original.Equals(copied) {
+	if original.Equals(&copied) {
 		t.Errorf("modifying the copy affected the original: %v", original)
 	}
 

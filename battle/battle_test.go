@@ -183,13 +183,13 @@ func TestRunDoesNotMutateCreatures(t *testing.T) {
 	players := make([]Creature, len(originalPlayers))
 	for i, player := range originalPlayers {
 		copied := player.DeepCopy()
-		players[i] = *copied
+		players[i] = copied
 	}
 
 	monsters := make([]Creature, len(originalMonsters))
 	for i, monster := range originalMonsters {
 		copied := monster.DeepCopy()
-		monsters[i] = *copied
+		monsters[i] = copied
 	}
 
 	_, err := Run(rng, log, players, monsters)

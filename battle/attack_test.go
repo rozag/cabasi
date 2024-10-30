@@ -221,7 +221,7 @@ func TestAttackDeepCopy(t *testing.T) {
 	}
 	copied := original.DeepCopy()
 
-	if !original.Equals(copied) {
+	if !original.Equals(&copied) {
 		t.Fatalf("Attack.DeepCopy() = %v, want %v", copied, original)
 	}
 
@@ -232,7 +232,7 @@ func TestAttackDeepCopy(t *testing.T) {
 	copied.Charges = 1
 	copied.IsBlast = true
 
-	if original.Equals(copied) {
+	if original.Equals(&copied) {
 		t.Errorf("modifying the copy affected the original: %v", original)
 	}
 

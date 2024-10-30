@@ -87,13 +87,13 @@ func Run(rng dice.RNG, log Log, players, monsters []Creature) (bool, error) {
 	playersCopy := make([]Creature, len(players))
 	for i, player := range players {
 		copied := player.DeepCopy()
-		playersCopy[i] = *copied
+		playersCopy[i] = copied
 	}
 
 	monstersCopy := make([]Creature, len(monsters))
 	for i, monster := range monsters {
 		copied := monster.DeepCopy()
-		monstersCopy[i] = *copied
+		monstersCopy[i] = copied
 	}
 
 	havePlayersWon := run(rng, log, playersCopy, monstersCopy)

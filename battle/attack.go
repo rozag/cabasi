@@ -106,8 +106,8 @@ func (this *Attack) Equals(other *Attack) bool {
 }
 
 // DeepCopy creates a deep copy of the Attack.
-func (a *Attack) DeepCopy() *Attack {
-	return &Attack{
+func (a *Attack) DeepCopy() Attack {
+	return Attack{
 		Name:                 a.Name,
 		TargetCharacteristic: a.TargetCharacteristic,
 		Dice:                 a.Dice,
