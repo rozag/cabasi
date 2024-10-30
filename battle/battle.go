@@ -100,11 +100,35 @@ func Run(rng dice.RNG, log Log, players, monsters []Creature) (bool, error) {
 	return havePlayersWon, nil
 }
 
+// TODO: battle.New(rng, log)? More deps/settings will come later
+
 func run(rng dice.RNG, log Log, players, monsters []Creature) bool {
-	players[0].Name = "Player One"                     // TODO: remove
-	players[0].Attacks[0].Name = "Player Attack One"   // TODO: remove
-	monsters[0].Name = "Monster One"                   // TODO: remove
-	monsters[0].Attacks[0].Name = "Monster Attack One" // TODO: remove
-	// TODO:
-	return false
+	for {
+		if true { // TODO: remove
+			return true
+		}
+
+		// playerTargets := pickTargets(players, monsters)
+		//   true - can flee
+		// monsters := attackTargets(rng, log, players, monsters, playerTargets, true)
+		// if len(monsters) == 0 {
+		// 	return true
+		// }
+		//
+		// monsterTargets := pickTargets(monsters, players)
+		//   false - cannot flee
+		// players := attackTargets(rng, log, monsters, players, monsterTargets, false)
+		// if len(players) == 0 {
+		// 	return false
+		// }
+
+		// TODO:
+		// each round while there are players and monsters alive (but monsters flee)
+		// - all players pick targets
+		// - all players attack, same target -> the highest hit
+		// - all monsters pick targets
+		// - all monsters attack, same target -> the highest hit
+
+		// TODO: remove dead or fleeing creatures from the slices on attack resolve
+	}
 }
