@@ -428,3 +428,90 @@ func TestCreatureDeepCopy(t *testing.T) {
 		t.Errorf("original.IsDetachment == copied.IsDetachment")
 	}
 }
+
+func TestCreatureIsOut(t *testing.T) {
+	spear := Attack{
+		Name: "Spear", TargetCharacteristic: STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	tests := []struct {
+		name     string
+		creature Creature
+		want     bool
+	}{
+		{
+			name: "AliveCreature",
+			creature: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: false,
+		},
+		{
+			name: "DeadCreature",
+			creature: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 0, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: true,
+		},
+		{
+			name: "ParalyzedCreature",
+			creature: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: true,
+		},
+		{
+			name: "DeliriousCreature",
+			creature: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 8, DEX: 14, WIL: 0, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: true,
+		},
+		{
+			name: "All0Creature",
+			creature: Creature{
+				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				STR: 0, DEX: 0, WIL: 0, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			want: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.creature.IsOut(); got != test.want {
+				t.Fatalf("Creature.IsOut() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestCreatureIDCompareTo(t *testing.T) {
+	tests := []struct {
+		id1  CreatureID
+		id2  CreatureID
+		want int
+	}{
+		{CreatureID("a"), CreatureID("a"), 0},
+		{CreatureID("a"), CreatureID("b"), -1},
+		{CreatureID("b"), CreatureID("a"), 1},
+		{CreatureID("abc"), CreatureID("abd"), -1},
+		{CreatureID("abd"), CreatureID("abc"), 1},
+	}
+	for _, test := range tests {
+		t.Run(string(test.id1)+"_"+string(test.id2), func(t *testing.T) {
+			if got := test.id1.CompareTo(test.id2); got != test.want {
+				t.Errorf("CompareTo() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}

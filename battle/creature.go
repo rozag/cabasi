@@ -15,9 +15,24 @@ const HPMin = 1
 
 const ArmorMax = 3
 
+// CreatureID is a unique identifier of a creature.
+type CreatureID string
+
+// CompareTo returns an integer comparing two ids lexicographically. The result
+// will be 0 if this == other, -1 if this < other, and +1 if this > other.
+func (this CreatureID) CompareTo(other CreatureID) int {
+	if this < other {
+		return -1
+	}
+	if this > other {
+		return 1
+	}
+	return 0
+}
+
 // Creature represents a creature in a battle - a player or a monster.
 type Creature struct {
-	ID           string
+	ID           CreatureID
 	Name         string
 	Attacks      []Attack
 	STR          uint8
@@ -26,6 +41,12 @@ type Creature struct {
 	HP           uint8
 	Armor        uint8
 	IsDetachment bool
+}
+
+// IsOut checks if the Creature is out of the battle - if any of its core
+// characteristics is zero.
+func (c *Creature) IsOut() bool {
+	return c.STR == 0 || c.DEX == 0 || c.WIL == 0
 }
 
 // String returns the string representation of the Creature.

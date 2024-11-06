@@ -20,23 +20,49 @@ func (dummyLog) Attack(
 ) {
 }
 
+func dummyPickTargets(a, d map[CreatureID]Creature) []PickedTargets {
+	return nil
+}
+
 func TestNewValidation(t *testing.T) {
 	rng := dummyRNG{}
 	log := dummyLog{}
 	tests := []struct {
-		rng        dice.RNG
-		log        Log
-		name       string
-		wantErrCnt uint
+		rng         dice.RNG
+		log         Log
+		pickTargets PickTargets
+		name        string
+		wantErrCnt  uint
 	}{
-		{name: "ValidNew", rng: rng, log: log, wantErrCnt: 0},
-		{name: "NoRNG", rng: nil, log: log, wantErrCnt: 1},
-		{name: "NoLog", rng: rng, log: nil, wantErrCnt: 1},
-		{name: "MultipleErrors", rng: nil, log: nil, wantErrCnt: 2},
+		{
+			name: "ValidNew",
+			rng:  rng, log: log, pickTargets: dummyPickTargets,
+			wantErrCnt: 0,
+		},
+		{
+			name: "NoRNG",
+			rng:  nil, log: log, pickTargets: dummyPickTargets,
+			wantErrCnt: 1,
+		},
+		{
+			name: "NoLog",
+			rng:  rng, log: nil, pickTargets: dummyPickTargets,
+			wantErrCnt: 1,
+		},
+		{
+			name: "NoPickTargets",
+			rng:  rng, log: log, pickTargets: nil,
+			wantErrCnt: 1,
+		},
+		{
+			name: "MultipleErrors",
+			rng:  nil, log: nil, pickTargets: nil,
+			wantErrCnt: 3,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := New(test.rng, test.log)
+			_, err := New(test.rng, test.log, test.pickTargets)
 
 			if test.wantErrCnt == 0 {
 				if err != nil {
@@ -159,7 +185,7 @@ func TestRunValidation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			b, err := New(dummyRNG{}, dummyLog{})
+			b, err := New(dummyRNG{}, dummyLog{}, dummyPickTargets)
 			if err != nil {
 				t.Fatalf("New(): want nil error, got %v", err)
 			}
@@ -192,9 +218,7 @@ func TestRunValidation(t *testing.T) {
 }
 
 func TestRunDoesNotMutateCreatures(t *testing.T) {
-	rng := dummyRNG{}
-	log := dummyLog{}
-	b, err := New(rng, log)
+	b, err := New(dummyRNG{}, dummyLog{}, dummyPickTargets)
 	if err != nil {
 		t.Fatalf("New(): want nil error, got %v", err)
 	}
