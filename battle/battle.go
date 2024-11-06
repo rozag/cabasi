@@ -17,19 +17,21 @@ type Log interface {
 	Attack(attacker, defender Creature, attack Attack, damage uint8)
 }
 
-// Run simulates a battle between 2 groups of Creatures. It returns true if the
-// players won, false otherwise.
+type Battle struct {
+	rng dice.RNG
+	log Log
+}
+
+// New creates a new Battle with the provided RNG and Log.
 //
 // The RNG is used for all the rolls.
 //
 // The Log is used for logging the battle events.
 //
-// Run returns an error if input is invalid in any way. The error has an
+// New returns an error if input is invalid in any way. The error has an
 // `Unwrap() []error` method to get all the errors or `nil` if the inputs are
 // valid.
-//
-// Run doesn't modify the input creatures.
-func Run(rng dice.RNG, log Log, players, monsters []Creature) (bool, error) {
+func New(rng dice.RNG, log Log) (*Battle, error) {
 	var errs []error
 
 	if rng == nil {
@@ -39,6 +41,24 @@ func Run(rng dice.RNG, log Log, players, monsters []Creature) (bool, error) {
 	if log == nil {
 		errs = append(errs, errors.New("Log must be provided"))
 	}
+
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
+	return &Battle{rng: rng, log: log}, nil
+}
+
+// Run simulates a battle between 2 groups of Creatures. It returns true if the
+// players won, false otherwise.
+//
+// Run returns an error if input is invalid in any way. The error has an
+// `Unwrap() []error` method to get all the errors or `nil` if the inputs are
+// valid.
+//
+// Run doesn't modify the input creatures.
+func (b *Battle) Run(players, monsters []Creature) (bool, error) {
+	var errs []error
 
 	if len(players) == 0 {
 		errs = append(errs, errors.New("at least one player must be provided"))
@@ -96,17 +116,21 @@ func Run(rng dice.RNG, log Log, players, monsters []Creature) (bool, error) {
 		monstersCopy[i] = copied
 	}
 
-	havePlayersWon := run(rng, log, playersCopy, monstersCopy)
+	havePlayersWon := b.run(playersCopy, monstersCopy)
 	return havePlayersWon, nil
 }
 
-// TODO: battle.New(rng, log)? More deps/settings will come later
-
-func run(rng dice.RNG, log Log, players, monsters []Creature) bool {
+func (b *Battle) run(players, monsters []Creature) bool {
 	for {
 		if true { // TODO: remove
 			return true
 		}
+
+		// NOTE:
+		// • Enemies must pass a WIL save to avoid fleeing when they take their
+		//   first casualty and again when they lose half their number.
+		// • Some groups may use their leader’s WIL in place of their own. Lone foes
+		//   must save when they’re reduced to 0 HP.
 
 		// playerTargets := pickTargets(players, monsters)
 		//   true - can flee

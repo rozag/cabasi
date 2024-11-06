@@ -20,9 +20,50 @@ func (dummyLog) Attack(
 ) {
 }
 
-func TestRunValidation(t *testing.T) {
+func TestNewValidation(t *testing.T) {
 	rng := dummyRNG{}
 	log := dummyLog{}
+	tests := []struct {
+		rng        dice.RNG
+		log        Log
+		name       string
+		wantErrCnt uint
+	}{
+		{name: "ValidNew", rng: rng, log: log, wantErrCnt: 0},
+		{name: "NoRNG", rng: nil, log: log, wantErrCnt: 1},
+		{name: "NoLog", rng: rng, log: nil, wantErrCnt: 1},
+		{name: "MultipleErrors", rng: nil, log: nil, wantErrCnt: 2},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := New(test.rng, test.log)
+
+			if test.wantErrCnt == 0 {
+				if err != nil {
+					t.Fatalf("New(): want nil error, got %v", err)
+				} else {
+					return
+				}
+			}
+
+			if err == nil {
+				t.Fatalf("New(): want error, got nil")
+			}
+
+			jointErr, ok := err.(interface{ Unwrap() []error })
+			if !ok {
+				t.Fatalf("New(): error must have `Unwrap() []error` method")
+			}
+
+			errs := jointErr.Unwrap()
+			if uint(len(errs)) != test.wantErrCnt {
+				t.Fatalf("New(): want %d errors, got %d", test.wantErrCnt, len(errs))
+			}
+		})
+	}
+}
+
+func TestRunValidation(t *testing.T) {
 	spear := Attack{
 		Name: "Spear", TargetCharacteristic: STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
@@ -40,48 +81,36 @@ func TestRunValidation(t *testing.T) {
 	}
 	tests := []struct {
 		name              string
-		rng               dice.RNG
-		log               Log
 		players, monsters []Creature
 		wantErrCnt        uint
 	}{
 		{
-			name: "ValidRun", rng: rng, log: log,
+			name:    "ValidRun",
 			players: []Creature{player}, monsters: []Creature{monster},
 			wantErrCnt: 0,
 		},
 		{
-			name: "NoRNG", rng: nil, log: log,
-			players: []Creature{player}, monsters: []Creature{monster},
-			wantErrCnt: 1,
-		},
-		{
-			name: "NoLog", rng: rng, log: nil,
-			players: []Creature{player}, monsters: []Creature{monster},
-			wantErrCnt: 1,
-		},
-		{
-			name: "NilPlayers", rng: rng, log: log,
+			name:    "NilPlayers",
 			players: nil, monsters: []Creature{monster},
 			wantErrCnt: 1,
 		},
 		{
-			name: "EmptyPlayers", rng: rng, log: log,
+			name:    "EmptyPlayers",
 			players: []Creature{}, monsters: []Creature{monster},
 			wantErrCnt: 1,
 		},
 		{
-			name: "NilMonsters", rng: rng, log: log,
+			name:    "NilMonsters",
 			players: []Creature{player}, monsters: nil,
 			wantErrCnt: 1,
 		},
 		{
-			name: "EmptyMonsters", rng: rng, log: log,
+			name:    "EmptyMonsters",
 			players: []Creature{player}, monsters: []Creature{},
 			wantErrCnt: 1,
 		},
 		{
-			name: "InvalidPlayer", rng: rng, log: log,
+			name: "InvalidPlayer",
 			players: []Creature{
 				{
 					ID: "", Name: "John Appleseed", Attacks: []Attack{spear},
@@ -93,7 +122,7 @@ func TestRunValidation(t *testing.T) {
 			wantErrCnt: 1,
 		},
 		{
-			name: "InvalidMonster", rng: rng, log: log,
+			name:    "InvalidMonster",
 			players: []Creature{player},
 			monsters: []Creature{
 				{
@@ -105,7 +134,7 @@ func TestRunValidation(t *testing.T) {
 			wantErrCnt: 1,
 		},
 		{
-			name: "NonUniqueCreatureID", rng: rng, log: log,
+			name: "NonUniqueCreatureID",
 			players: []Creature{
 				{
 					ID: "creature", Name: "John Appleseed", Attacks: []Attack{spear},
@@ -123,14 +152,19 @@ func TestRunValidation(t *testing.T) {
 			wantErrCnt: 1,
 		},
 		{
-			name: "MultipleErrors", rng: nil, log: nil,
+			name:    "MultipleErrors",
 			players: nil, monsters: nil,
-			wantErrCnt: 4,
+			wantErrCnt: 2,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := Run(test.rng, test.log, test.players, test.monsters)
+			b, err := New(dummyRNG{}, dummyLog{})
+			if err != nil {
+				t.Fatalf("New(): want nil error, got %v", err)
+			}
+
+			_, err = b.Run(test.players, test.monsters)
 
 			if test.wantErrCnt == 0 {
 				if err != nil {
@@ -160,6 +194,11 @@ func TestRunValidation(t *testing.T) {
 func TestRunDoesNotMutateCreatures(t *testing.T) {
 	rng := dummyRNG{}
 	log := dummyLog{}
+	b, err := New(rng, log)
+	if err != nil {
+		t.Fatalf("New(): want nil error, got %v", err)
+	}
+
 	spear := Attack{
 		Name: "Spear", TargetCharacteristic: STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
@@ -192,7 +231,7 @@ func TestRunDoesNotMutateCreatures(t *testing.T) {
 		monsters[i] = copied
 	}
 
-	_, err := Run(rng, log, players, monsters)
+	_, err = b.Run(players, monsters)
 	if err != nil {
 		t.Fatalf("Run(): want nil error, got %v", err)
 	}
