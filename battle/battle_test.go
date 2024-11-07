@@ -14,13 +14,14 @@ type dummyLog struct{}
 
 func (dummyLog) Roll(c Creature, roll uint8) {}
 func (dummyLog) Attack(
-	attacker, defender Creature,
+	attacker Creature,
+	defenders []Creature,
 	attack Attack,
-	damage uint8,
+	damage uint,
 ) {
 }
 
-func dummyPickTargets(a, d map[CreatureID]Creature) []PickedTargets {
+func dummyPickTargets(attackers, defenders []Creature) []PickedTargets {
 	return nil
 }
 

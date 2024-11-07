@@ -14,7 +14,7 @@ type Log interface {
 
 	// Attack logs an attack of an attacker on a defender with a specific attack
 	// and damage dealt.
-	Attack(attacker, defender Creature, attack Attack, damage uint8)
+	Attack(attacker Creature, defenders []Creature, attack Attack, damage uint)
 }
 
 type Battle struct {
@@ -111,21 +111,23 @@ func (b *Battle) Run(players, monsters []Creature) (bool, error) {
 		return false, errors.Join(errs...)
 	}
 
-	idToPlayers := make(map[CreatureID]Creature, len(players))
-	for i := range players {
-		idToPlayers[players[i].ID] = players[i].DeepCopy()
+	playersCopy := make([]Creature, len(players))
+	for i, player := range players {
+		copied := player.DeepCopy()
+		playersCopy[i] = copied
 	}
 
-	idToMonsters := make(map[CreatureID]Creature, len(monsters))
-	for i := range monsters {
-		idToMonsters[monsters[i].ID] = monsters[i].DeepCopy()
+	monstersCopy := make([]Creature, len(monsters))
+	for i, monster := range monsters {
+		copied := monster.DeepCopy()
+		monstersCopy[i] = copied
 	}
 
-	havePlayersWon := b.run(idToPlayers, idToMonsters)
+	havePlayersWon := b.run(playersCopy, monstersCopy)
 	return havePlayersWon, nil
 }
 
-func (b *Battle) run(idToPlayers, idToMonsters map[CreatureID]Creature) bool {
+func (b *Battle) run(players, monsters []Creature) bool {
 	for {
 		if true { // TODO: remove
 			return true
