@@ -4,7 +4,7 @@ import "testing"
 
 type fixedRNG uint
 
-func (f fixedRNG) UintN(n uint) uint { return uint(f) }
+func (f fixedRNG) UintN(uint) uint { return uint(f) }
 
 func TestDiceRollRange(t *testing.T) {
 	tests := []struct {

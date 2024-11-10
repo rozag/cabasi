@@ -1,18 +1,21 @@
-package battle
+package atk
 
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/rozag/cabasi/dice"
 )
 
+// Characteristic represents one of the core creature characteristics.
 type Characteristic uint8
 
 const (
+	// STR is the strength.
 	STR Characteristic = iota
+	// DEX is the dexterity.
 	DEX
+	// WIL is the willpower.
 	WIL
 )
 
@@ -96,13 +99,13 @@ func (a *Attack) Validate() error {
 }
 
 // Equals checks if the Attack is equal to the other Attack.
-func (this *Attack) Equals(other *Attack) bool {
-	return this.Name == other.Name &&
-		this.TargetCharacteristic == other.TargetCharacteristic &&
-		this.Dice == other.Dice &&
-		this.DiceCnt == other.DiceCnt &&
-		this.Charges == other.Charges &&
-		this.IsBlast == other.IsBlast
+func (a *Attack) Equals(other *Attack) bool {
+	return a.Name == other.Name &&
+		a.TargetCharacteristic == other.TargetCharacteristic &&
+		a.Dice == other.Dice &&
+		a.DiceCnt == other.DiceCnt &&
+		a.Charges == other.Charges &&
+		a.IsBlast == other.IsBlast
 }
 
 // DeepCopy creates a deep copy of the Attack.
@@ -115,36 +118,4 @@ func (a *Attack) DeepCopy() Attack {
 		Charges:              a.Charges,
 		IsBlast:              a.IsBlast,
 	}
-}
-
-// AttackSlice is a `[]Attack` with helper methods.
-type AttackSlice []Attack
-
-// String returns the string representation of the AttackSlice.
-func (a AttackSlice) String() string {
-	var sb strings.Builder
-	sb.WriteString("[]Attack{")
-	for i, attack := range a {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(attack.String())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-// Equals checks if the AttackSlice is equal to the other AttackSlice.
-func (this AttackSlice) Equals(other AttackSlice) bool {
-	if len(this) != len(other) {
-		return false
-	}
-
-	for i := range this {
-		if !this[i].Equals(&other[i]) {
-			return false
-		}
-	}
-
-	return true
 }

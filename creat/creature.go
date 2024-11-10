@@ -1,40 +1,32 @@
-package battle
+package creat
 
 import (
 	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/rozag/cabasi/atk"
 )
 
 const (
+	// CharacteristicMin is the minimum value of a newly created creature's
+	// characteristic.
 	CharacteristicMin = 1
+	// CharacteristicMax is the maximum value of a newly created creature's
+	// characteristic.
 	CharacteristicMax = 20
 )
 
+// HPMin is the minimum value of a newly created creature's HP.
 const HPMin = 1
 
+// ArmorMax is the maximum value of a creature's armor.
 const ArmorMax = 3
-
-// CreatureID is a unique identifier of a creature.
-type CreatureID string
-
-// CompareTo returns an integer comparing two ids lexicographically. The result
-// will be 0 if this == other, -1 if this < other, and +1 if this > other.
-func (this CreatureID) CompareTo(other CreatureID) int {
-	if this < other {
-		return -1
-	}
-	if this > other {
-		return 1
-	}
-	return 0
-}
 
 // Creature represents a creature in a battle - a player or a monster.
 type Creature struct {
-	ID           CreatureID
+	ID           ID
 	Name         string
-	Attacks      []Attack
+	Attacks      []atk.Attack
 	STR          uint8
 	DEX          uint8
 	WIL          uint8
@@ -65,7 +57,7 @@ func (c *Creature) String() string {
 			"}",
 		c.ID,
 		c.Name,
-		AttackSlice(c.Attacks),
+		atk.AttackSlice(c.Attacks),
 		c.STR,
 		c.DEX,
 		c.WIL,
@@ -137,21 +129,21 @@ func (c *Creature) Validate() error {
 }
 
 // Equals checks if the Creature is equal to the other Creature.
-func (this *Creature) Equals(other *Creature) bool {
-	return this.ID == other.ID &&
-		this.Name == other.Name &&
-		this.STR == other.STR &&
-		this.DEX == other.DEX &&
-		this.WIL == other.WIL &&
-		this.HP == other.HP &&
-		this.Armor == other.Armor &&
-		this.IsDetachment == other.IsDetachment &&
-		AttackSlice(this.Attacks).Equals(AttackSlice(other.Attacks))
+func (c *Creature) Equals(other *Creature) bool {
+	return c.ID == other.ID &&
+		c.Name == other.Name &&
+		c.STR == other.STR &&
+		c.DEX == other.DEX &&
+		c.WIL == other.WIL &&
+		c.HP == other.HP &&
+		c.Armor == other.Armor &&
+		c.IsDetachment == other.IsDetachment &&
+		atk.AttackSlice(c.Attacks).Equals(atk.AttackSlice(other.Attacks))
 }
 
 // DeepCopy creates a deep copy of the Creature.
 func (c *Creature) DeepCopy() Creature {
-	attacks := make([]Attack, len(c.Attacks))
+	attacks := make([]atk.Attack, len(c.Attacks))
 	for i, attack := range c.Attacks {
 		copied := attack.DeepCopy()
 		attacks[i] = copied
@@ -167,36 +159,4 @@ func (c *Creature) DeepCopy() Creature {
 		Armor:        c.Armor,
 		IsDetachment: c.IsDetachment,
 	}
-}
-
-// CreatureSlice is a `[]Creature` with helper methods.
-type CreatureSlice []Creature
-
-// String returns the string representation of the CreatureSlice.
-func (cs CreatureSlice) String() string {
-	var sb strings.Builder
-	sb.WriteString("[]Creature{")
-	for i, c := range cs {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(c.String())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-// Equals checks if the CreatureSlice is equal to the other CreatureSlice.
-func (this CreatureSlice) Equals(other CreatureSlice) bool {
-	if len(this) != len(other) {
-		return false
-	}
-
-	for i := range this {
-		if !this[i].Equals(&other[i]) {
-			return false
-		}
-	}
-
-	return true
 }

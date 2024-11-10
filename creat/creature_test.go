@@ -1,14 +1,15 @@
-package battle
+package creat
 
 import (
 	"testing"
 
+	"github.com/rozag/cabasi/atk"
 	"github.com/rozag/cabasi/dice"
 )
 
 func TestCreatureValidate(t *testing.T) {
-	spear := Attack{
-		Name: "Spear", TargetCharacteristic: STR,
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
@@ -20,7 +21,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "ValidCreature",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -29,7 +30,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "EmptyID",
 			creature: Creature{
-				ID: "", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -38,7 +39,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "EmptyName",
 			creature: Creature{
-				ID: "monster-0", Name: "", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -56,7 +57,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "EmptyAttacks",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -66,9 +67,9 @@ func TestCreatureValidate(t *testing.T) {
 			name: "InvalidAttack",
 			creature: Creature{
 				ID: "monster-0", Name: "Root Goblin",
-				Attacks: []Attack{
+				Attacks: []atk.Attack{
 					{
-						Name: "", TargetCharacteristic: STR,
+						Name: "", TargetCharacteristic: atk.STR,
 						Dice: dice.D6, DiceCnt: 1, Charges: -1,
 						IsBlast: false,
 					},
@@ -81,7 +82,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "STRTooLow",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 0, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -90,7 +91,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "STRTooHigh",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 21, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -99,7 +100,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "DEXTooLow",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -108,7 +109,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "DEXTooHigh",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 21, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -117,7 +118,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "WILTooLow",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 0, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -126,7 +127,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "WILTooHigh",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 21, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -135,7 +136,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "HPTooLow",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 0, Armor: 0,
 				IsDetachment: false,
 			},
@@ -144,7 +145,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "ArmorTooHigh",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 4,
 				IsDetachment: false,
 			},
@@ -153,7 +154,7 @@ func TestCreatureValidate(t *testing.T) {
 		{
 			name: "MultipleErrors",
 			creature: Creature{
-				ID: "", Name: "", Attacks: []Attack{},
+				ID: "", Name: "", Attacks: []atk.Attack{},
 				STR: 21, DEX: 0, WIL: 21, HP: 0, Armor: 21,
 				IsDetachment: true,
 			},
@@ -195,8 +196,8 @@ func TestCreatureValidate(t *testing.T) {
 }
 
 func TestCreatureEquals(t *testing.T) {
-	spear := Attack{
-		Name: "Spear", TargetCharacteristic: STR,
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
@@ -208,12 +209,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "EqualCreatures",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -222,12 +223,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentID",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-1", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -236,12 +237,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentName",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Boot Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Boot Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -251,9 +252,9 @@ func TestCreatureEquals(t *testing.T) {
 			name: "DifferentAttacks",
 			this: Creature{
 				ID: "monster-0", Name: "Root Goblin",
-				Attacks: []Attack{
+				Attacks: []atk.Attack{
 					{
-						Name: "Spear", TargetCharacteristic: STR,
+						Name: "Spear", TargetCharacteristic: atk.STR,
 						Dice: dice.D6, DiceCnt: 1, Charges: -1,
 						IsBlast: false,
 					},
@@ -263,9 +264,9 @@ func TestCreatureEquals(t *testing.T) {
 			},
 			other: Creature{
 				ID: "monster-0", Name: "Root Goblin",
-				Attacks: []Attack{
+				Attacks: []atk.Attack{
 					{
-						Name: "Sword", TargetCharacteristic: STR,
+						Name: "Sword", TargetCharacteristic: atk.STR,
 						Dice: dice.D6, DiceCnt: 1, Charges: -1,
 						IsBlast: false,
 					},
@@ -278,12 +279,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentSTR",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 9, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -292,12 +293,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentDEX",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 15, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -306,12 +307,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentWIL",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 9, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -320,12 +321,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentHP",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 5, Armor: 0,
 				IsDetachment: false,
 			},
@@ -334,12 +335,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentArmor",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
 				IsDetachment: false,
 			},
@@ -348,12 +349,12 @@ func TestCreatureEquals(t *testing.T) {
 		{
 			name: "DifferentIsDetachment",
 			this: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
 			other: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: true,
 			},
@@ -370,13 +371,13 @@ func TestCreatureEquals(t *testing.T) {
 }
 
 func TestCreatureDeepCopy(t *testing.T) {
-	spear := Attack{
-		Name: "Spear", TargetCharacteristic: STR,
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
 	original := Creature{
-		ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+		ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 		IsDetachment: false,
 	}
@@ -406,7 +407,7 @@ func TestCreatureDeepCopy(t *testing.T) {
 	if original.Name == copied.Name {
 		t.Errorf("original.Name == copied.Name")
 	}
-	if AttackSlice(original.Attacks).Equals(AttackSlice(copied.Attacks)) {
+	if atk.AttackSlice(original.Attacks).Equals(atk.AttackSlice(copied.Attacks)) {
 		t.Errorf("original.Attacks == copied.Attacks")
 	}
 	if original.STR == copied.STR {
@@ -430,8 +431,8 @@ func TestCreatureDeepCopy(t *testing.T) {
 }
 
 func TestCreatureIsOut(t *testing.T) {
-	spear := Attack{
-		Name: "Spear", TargetCharacteristic: STR,
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
@@ -443,7 +444,7 @@ func TestCreatureIsOut(t *testing.T) {
 		{
 			name: "AliveCreature",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -452,7 +453,7 @@ func TestCreatureIsOut(t *testing.T) {
 		{
 			name: "DeadCreature",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 0, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -461,7 +462,7 @@ func TestCreatureIsOut(t *testing.T) {
 		{
 			name: "ParalyzedCreature",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -470,7 +471,7 @@ func TestCreatureIsOut(t *testing.T) {
 		{
 			name: "DeliriousCreature",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 8, DEX: 14, WIL: 0, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -479,7 +480,7 @@ func TestCreatureIsOut(t *testing.T) {
 		{
 			name: "All0Creature",
 			creature: Creature{
-				ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+				ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 				STR: 0, DEX: 0, WIL: 0, HP: 4, Armor: 0,
 				IsDetachment: false,
 			},
@@ -490,27 +491,6 @@ func TestCreatureIsOut(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			if got := test.creature.IsOut(); got != test.want {
 				t.Fatalf("Creature.IsOut() = %v, want %v", got, test.want)
-			}
-		})
-	}
-}
-
-func TestCreatureIDCompareTo(t *testing.T) {
-	tests := []struct {
-		id1  CreatureID
-		id2  CreatureID
-		want int
-	}{
-		{CreatureID("a"), CreatureID("a"), 0},
-		{CreatureID("a"), CreatureID("b"), -1},
-		{CreatureID("b"), CreatureID("a"), 1},
-		{CreatureID("abc"), CreatureID("abd"), -1},
-		{CreatureID("abd"), CreatureID("abc"), 1},
-	}
-	for _, test := range tests {
-		t.Run(string(test.id1)+"_"+string(test.id2), func(t *testing.T) {
-			if got := test.id1.CompareTo(test.id2); got != test.want {
-				t.Errorf("CompareTo() = %v, want %v", got, test.want)
 			}
 		})
 	}

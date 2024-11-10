@@ -4,37 +4,60 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rozag/cabasi/atk"
+	"github.com/rozag/cabasi/creat"
 	"github.com/rozag/cabasi/dice"
 )
 
 // Log is an interface for logging the battle events.
 type Log interface {
 	// Roll logs a roll of a dice for a creature, a save of some sort.
-	Roll(c Creature, roll uint8)
+	Roll(c creat.Creature, roll uint8)
 
 	// Attack logs an attack of an attacker on a defender with a specific attack
 	// and damage dealt.
-	Attack(attacker Creature, defenders []Creature, attack Attack, damage uint)
+	Attack(
+		attacker creat.Creature,
+		defenders []creat.Creature,
+		attack atk.Attack,
+		damage uint,
+	)
 }
 
+// PickAttack is a function that picks which attack the attacker will use.
+// It receives an attacker and a slice of defenders.
+// It returns index of the attack the attacker will use.
+// It returns -1 if the attacker does not attack.
+type PickAttack func(attacker creat.Creature, defenders []creat.Creature) int
+
+// PickTargets is a function that picks targets for the selected attack.
+// It receives a picked attack and a slice of defenders.
+// It returns a slice of picked defender indexes.
+// It returns nil if there are no defenders to attack.
+type PickTargets func(attack atk.Attack, defenders []creat.Creature) []uint
+
+// Battle represents a battle between 2 parties.
 type Battle struct {
 	rng         dice.RNG
 	log         Log
+	pickAttack  PickAttack
 	pickTargets PickTargets
 }
 
 // New creates a new Battle with the provided RNG and Log.
-//
 // The RNG is used for all the rolls.
-//
 // The Log is used for logging the battle events.
-//
-// The PickTargets is a function that picks the targets for the attackers.
-//
+// The PickAttack is a function that picks which attack the attacker will use.
+// The PickTargets is a function that picks targets for an attack.
 // New returns an error if input is invalid in any way. The error has an
 // `Unwrap() []error` method to get all the errors or `nil` if the inputs are
 // valid.
-func New(rng dice.RNG, log Log, pickTargets PickTargets) (*Battle, error) {
+func New(
+	rng dice.RNG,
+	log Log,
+	pickAttack PickAttack,
+	pickTargets PickTargets,
+) (*Battle, error) {
 	var errs []error
 
 	if rng == nil {
@@ -45,6 +68,10 @@ func New(rng dice.RNG, log Log, pickTargets PickTargets) (*Battle, error) {
 		errs = append(errs, errors.New("Log must be provided"))
 	}
 
+	if pickAttack == nil {
+		errs = append(errs, errors.New("PickAttack must be provided"))
+	}
+
 	if pickTargets == nil {
 		errs = append(errs, errors.New("PickTargets must be provided"))
 	}
@@ -53,7 +80,8 @@ func New(rng dice.RNG, log Log, pickTargets PickTargets) (*Battle, error) {
 		return nil, errors.Join(errs...)
 	}
 
-	return &Battle{rng, log, pickTargets}, nil
+	battle := Battle{rng, log, pickAttack, pickTargets}
+	return &battle, nil
 }
 
 // Run simulates a battle between 2 groups of Creatures. It returns true if the
@@ -64,7 +92,7 @@ func New(rng dice.RNG, log Log, pickTargets PickTargets) (*Battle, error) {
 // valid.
 //
 // Run doesn't modify the input creatures.
-func (b *Battle) Run(players, monsters []Creature) (bool, error) {
+func (b *Battle) Run(players, monsters []creat.Creature) (bool, error) {
 	var errs []error
 
 	if len(players) == 0 {
@@ -85,7 +113,7 @@ func (b *Battle) Run(players, monsters []Creature) (bool, error) {
 		}
 	}
 
-	ids := make(map[CreatureID]struct{})
+	ids := make(map[creat.ID]struct{})
 	for idx, player := range players {
 		if _, ok := ids[player.ID]; ok {
 			errs = append(
@@ -111,13 +139,13 @@ func (b *Battle) Run(players, monsters []Creature) (bool, error) {
 		return false, errors.Join(errs...)
 	}
 
-	playersCopy := make([]Creature, len(players))
+	playersCopy := make([]creat.Creature, len(players))
 	for i, player := range players {
 		copied := player.DeepCopy()
 		playersCopy[i] = copied
 	}
 
-	monstersCopy := make([]Creature, len(monsters))
+	monstersCopy := make([]creat.Creature, len(monsters))
 	for i, monster := range monsters {
 		copied := monster.DeepCopy()
 		monstersCopy[i] = copied
@@ -127,9 +155,11 @@ func (b *Battle) Run(players, monsters []Creature) (bool, error) {
 	return havePlayersWon, nil
 }
 
-func (b *Battle) run(players, monsters []Creature) bool {
+func (b *Battle) run(players, monsters []creat.Creature) bool {
 	for {
-		if true { // TODO: remove
+		_ = players  // TODO: remove
+		_ = monsters // TODO: remove
+		if true {    // TODO: remove
 			return true
 		}
 

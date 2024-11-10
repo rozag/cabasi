@@ -3,27 +3,24 @@ package battle
 import (
 	"testing"
 
+	"github.com/rozag/cabasi/atk"
+	"github.com/rozag/cabasi/creat"
 	"github.com/rozag/cabasi/dice"
 )
 
 type dummyRNG struct{}
 
-func (dummyRNG) UintN(n uint) uint { return 0 }
+func (dummyRNG) UintN(uint) uint { return 0 }
 
 type dummyLog struct{}
 
-func (dummyLog) Roll(c Creature, roll uint8) {}
-func (dummyLog) Attack(
-	attacker Creature,
-	defenders []Creature,
-	attack Attack,
-	damage uint,
-) {
-}
+func (dummyLog) Roll(creat.Creature, uint8) {}
 
-func dummyPickTargets(attackers, defenders []Creature) []PickedTargets {
-	return nil
-}
+func (dummyLog) Attack(creat.Creature, []creat.Creature, atk.Attack, uint) {}
+
+func dummyPickAttack(creat.Creature, []creat.Creature) int { return -1 }
+
+func dummyPickTargets(atk.Attack, []creat.Creature) []uint { return nil }
 
 func TestNewValidation(t *testing.T) {
 	rng := dummyRNG{}
@@ -31,39 +28,51 @@ func TestNewValidation(t *testing.T) {
 	tests := []struct {
 		rng         dice.RNG
 		log         Log
+		pickAttack  PickAttack
 		pickTargets PickTargets
 		name        string
 		wantErrCnt  uint
 	}{
 		{
 			name: "ValidNew",
-			rng:  rng, log: log, pickTargets: dummyPickTargets,
+			rng:  rng, log: log,
+			pickAttack: dummyPickAttack, pickTargets: dummyPickTargets,
 			wantErrCnt: 0,
 		},
 		{
 			name: "NoRNG",
-			rng:  nil, log: log, pickTargets: dummyPickTargets,
+			rng:  nil, log: log,
+			pickAttack: dummyPickAttack, pickTargets: dummyPickTargets,
 			wantErrCnt: 1,
 		},
 		{
 			name: "NoLog",
-			rng:  rng, log: nil, pickTargets: dummyPickTargets,
+			rng:  rng, log: nil,
+			pickAttack: dummyPickAttack, pickTargets: dummyPickTargets,
+			wantErrCnt: 1,
+		},
+		{
+			name: "NoPickAttack",
+			rng:  rng, log: log,
+			pickAttack: nil, pickTargets: dummyPickTargets,
 			wantErrCnt: 1,
 		},
 		{
 			name: "NoPickTargets",
-			rng:  rng, log: log, pickTargets: nil,
+			rng:  rng, log: log,
+			pickAttack: dummyPickAttack, pickTargets: nil,
 			wantErrCnt: 1,
 		},
 		{
 			name: "MultipleErrors",
-			rng:  nil, log: nil, pickTargets: nil,
-			wantErrCnt: 3,
+			rng:  nil, log: nil,
+			pickAttack: nil, pickTargets: nil,
+			wantErrCnt: 4,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := New(test.rng, test.log, test.pickTargets)
+			_, err := New(test.rng, test.log, test.pickAttack, test.pickTargets)
 
 			if test.wantErrCnt == 0 {
 				if err != nil {
@@ -91,69 +100,69 @@ func TestNewValidation(t *testing.T) {
 }
 
 func TestRunValidation(t *testing.T) {
-	spear := Attack{
-		Name: "Spear", TargetCharacteristic: STR,
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
-	player := Creature{
-		ID: "player-0", Name: "John Appleseed", Attacks: []Attack{spear},
+	player := creat.Creature{
+		ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
 		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 		IsDetachment: false,
 	}
-	monster := Creature{
-		ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+	monster := creat.Creature{
+		ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 		IsDetachment: false,
 	}
 	tests := []struct {
 		name              string
-		players, monsters []Creature
+		players, monsters []creat.Creature
 		wantErrCnt        uint
 	}{
 		{
 			name:    "ValidRun",
-			players: []Creature{player}, monsters: []Creature{monster},
+			players: []creat.Creature{player}, monsters: []creat.Creature{monster},
 			wantErrCnt: 0,
 		},
 		{
 			name:    "NilPlayers",
-			players: nil, monsters: []Creature{monster},
+			players: nil, monsters: []creat.Creature{monster},
 			wantErrCnt: 1,
 		},
 		{
 			name:    "EmptyPlayers",
-			players: []Creature{}, monsters: []Creature{monster},
+			players: []creat.Creature{}, monsters: []creat.Creature{monster},
 			wantErrCnt: 1,
 		},
 		{
 			name:    "NilMonsters",
-			players: []Creature{player}, monsters: nil,
+			players: []creat.Creature{player}, monsters: nil,
 			wantErrCnt: 1,
 		},
 		{
 			name:    "EmptyMonsters",
-			players: []Creature{player}, monsters: []Creature{},
+			players: []creat.Creature{player}, monsters: []creat.Creature{},
 			wantErrCnt: 1,
 		},
 		{
 			name: "InvalidPlayer",
-			players: []Creature{
+			players: []creat.Creature{
 				{
-					ID: "", Name: "John Appleseed", Attacks: []Attack{spear},
+					ID: "", Name: "John Appleseed", Attacks: []atk.Attack{spear},
 					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 					IsDetachment: false,
 				},
 			},
-			monsters:   []Creature{monster},
+			monsters:   []creat.Creature{monster},
 			wantErrCnt: 1,
 		},
 		{
 			name:    "InvalidMonster",
-			players: []Creature{player},
-			monsters: []Creature{
+			players: []creat.Creature{player},
+			monsters: []creat.Creature{
 				{
-					ID: "", Name: "Root Goblin", Attacks: []Attack{spear},
+					ID: "", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 					IsDetachment: false,
 				},
@@ -162,16 +171,16 @@ func TestRunValidation(t *testing.T) {
 		},
 		{
 			name: "NonUniqueCreatureID",
-			players: []Creature{
+			players: []creat.Creature{
 				{
-					ID: "creature", Name: "John Appleseed", Attacks: []Attack{spear},
+					ID: "creature", Name: "John Appleseed", Attacks: []atk.Attack{spear},
 					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 					IsDetachment: false,
 				},
 			},
-			monsters: []Creature{
+			monsters: []creat.Creature{
 				{
-					ID: "creature", Name: "Root Goblin", Attacks: []Attack{spear},
+					ID: "creature", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 					IsDetachment: false,
 				},
@@ -186,7 +195,7 @@ func TestRunValidation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			b, err := New(dummyRNG{}, dummyLog{}, dummyPickTargets)
+			b, err := New(dummyRNG{}, dummyLog{}, dummyPickAttack, dummyPickTargets)
 			if err != nil {
 				t.Fatalf("New(): want nil error, got %v", err)
 			}
@@ -219,38 +228,38 @@ func TestRunValidation(t *testing.T) {
 }
 
 func TestRunDoesNotMutateCreatures(t *testing.T) {
-	b, err := New(dummyRNG{}, dummyLog{}, dummyPickTargets)
+	b, err := New(dummyRNG{}, dummyLog{}, dummyPickAttack, dummyPickTargets)
 	if err != nil {
 		t.Fatalf("New(): want nil error, got %v", err)
 	}
 
-	spear := Attack{
-		Name: "Spear", TargetCharacteristic: STR,
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
-	originalPlayers := []Creature{
+	originalPlayers := []creat.Creature{
 		{
-			ID: "player-0", Name: "John Appleseed", Attacks: []Attack{spear},
+			ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
 			STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 			IsDetachment: false,
 		},
 	}
-	originalMonsters := []Creature{
+	originalMonsters := []creat.Creature{
 		{
-			ID: "monster-0", Name: "Root Goblin", Attacks: []Attack{spear},
+			ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
 			STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
 			IsDetachment: false,
 		},
 	}
 
-	players := make([]Creature, len(originalPlayers))
+	players := make([]creat.Creature, len(originalPlayers))
 	for i, player := range originalPlayers {
 		copied := player.DeepCopy()
 		players[i] = copied
 	}
 
-	monsters := make([]Creature, len(originalMonsters))
+	monsters := make([]creat.Creature, len(originalMonsters))
 	for i, monster := range originalMonsters {
 		copied := monster.DeepCopy()
 		monsters[i] = copied
@@ -261,12 +270,12 @@ func TestRunDoesNotMutateCreatures(t *testing.T) {
 		t.Fatalf("Run(): want nil error, got %v", err)
 	}
 
-	if !CreatureSlice(originalPlayers).Equals(players) {
+	if !creat.CreatureSlice(originalPlayers).Equals(players) {
 		t.Fatalf(
 			"Run(): players mutated, want %v, got %v", originalPlayers, players,
 		)
 	}
-	if !CreatureSlice(originalMonsters).Equals(monsters) {
+	if !creat.CreatureSlice(originalMonsters).Equals(monsters) {
 		t.Fatalf(
 			"Run(): monsters mutated, want %v, got %v", originalMonsters, monsters,
 		)
