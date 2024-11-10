@@ -173,7 +173,7 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 		// attackTargets is several steps:
 		// 1. map targets to all attackers and their attacks
 		// 2. resolve attacks
-		// 3. handle fleeing as reducing STR to 0
+		// 3. handle critical damage and fleeing (as reducing STR to 0)
 
 		// playerTargets := b.pickTargets(players, monsters)
 		//   true - can flee
