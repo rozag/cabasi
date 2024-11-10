@@ -1,7 +1,3 @@
-issues:
-  exclude-dirs:
-    - vendor
-
 linters:
   enable:
     ## https://golangci-lint.run/usage/linters/
@@ -185,6 +181,10 @@ linters:
     # Checks that package variables are not reassigned.
     - reassign
 
+    # Fast, configurable, extensible, flexible, and beautiful linter for Go.
+    # Drop-in replacement of golint.
+    - revive
+
     # Checks whether Rows.Err of rows is checked successfully.
     - rowserrcheck
 
@@ -259,6 +259,17 @@ linters-settings:
       - msg
       - source
       - foo
+
+issues:
+  exclude-dirs:
+    - vendor
+
+  include:
+    # revive: exported (.+) should have comment or be unexported
+    - EXC0012
+
+    # revive: comment on exported (.+) should be of the form "(.+)..."
+    - EXC0014
 
 severity:
   default-severity: error
