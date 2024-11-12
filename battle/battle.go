@@ -156,6 +156,14 @@ func (b *Battle) Run(players, monsters []creat.Creature) (bool, error) {
 }
 
 func (b *Battle) run(players, monsters []creat.Creature) bool {
+	playerAtkIdxs := make([]int, len(players))
+	playerTargets := make([][]uint, len(players))
+	playerAttackers := make([][]attacker, len(players))
+
+	monsterAtkIdxs := make([]int, len(monsters))
+	monsterTargets := make([][]uint, len(monsters))
+	monsterAttackers := make([][]attacker, len(monsters))
+
 	for {
 		_ = players  // TODO: remove
 		_ = monsters // TODO: remove
@@ -163,7 +171,7 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 			return true
 		}
 
-		// NOTE:
+		// TODO:
 		// • Enemies must pass a WIL save to avoid fleeing when they take their
 		//   first casualty and again when they lose half their number.
 		// • Some groups may use their leader’s WIL in place of their own. Lone foes
@@ -175,20 +183,6 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 		// 2. resolve attacks
 		// 3. handle critical damage and fleeing (as reducing STR to 0)
 
-		// playerTargets := b.pickTargets(players, monsters)
-		//   true - can flee
-		// attackTargets(rng, log, players, monsters, playerTargets, true)
-		// if isAnyoneAlive(monsters) {
-		// 	return true
-		// }
-		//
-		// monsterTargets := b.pickTargets(monsters, players)
-		//   false - cannot flee
-		// attackTargets(rng, log, monsters, players, monsterTargets, false)
-		// if isAnyoneAlive(players) {
-		// 	return false
-		// }
-
 		// TODO:
 		// each round while there are players and monsters alive (but monsters flee)
 		// - all players pick targets
@@ -198,5 +192,53 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 
 		// TODO: dead, incapacitated, or fleeing creatures have either their STR set
 		// to 0 on attack resolve or have DEX or WIL as 0 because of some effect
+
+		for i, player := range players {
+			atkIdx := b.pickAttack(player, monsters)
+			playerAtkIdxs[i] = atkIdx
+			if atkIdx < 0 {
+				playerTargets[i] = nil
+			} else {
+				playerTargets[i] = b.pickTargets(player.Attacks[atkIdx], monsters)
+			}
+		}
+
+		assignAttackers(monsterAttackers, playerTargets, playerAtkIdxs)
+
+		// TODO:
+
+		for i, monster := range monsters {
+			atkIdx := b.pickAttack(monster, players)
+			monsterAtkIdxs[i] = atkIdx
+			if atkIdx < 0 {
+				monsterTargets[i] = nil
+			} else {
+				monsterTargets[i] = b.pickTargets(monster.Attacks[atkIdx], players)
+			}
+		}
+
+		assignAttackers(playerAttackers, monsterTargets, monsterAtkIdxs)
 	}
+}
+
+type attacker struct {
+	attackerIdx uint
+	attackIdx   uint
+}
+
+// assignAttackers assigns attackers to targets.
+// It receives attackers, targets, and attack indexes.
+// It modifies attackers in place and doesn't return anything.
+// attackers is a slice of size of defenders, each element is a slice of
+// attackers that target the defender with a particular attack.
+// targets is a slice of size of attackers, each element is a slice of defender
+// indexes that are targeted by the attacker.
+// attackIdxs is a slice of size of attackers, each element is an index of the
+// attack the attacker will use.
+func assignAttackers(
+	attackers [][]attacker,
+	targets [][]uint,
+	attackIdxs []int,
+) {
+	// TODO:
 }

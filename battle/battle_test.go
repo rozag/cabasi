@@ -281,3 +281,8 @@ func TestRunDoesNotMutateCreatures(t *testing.T) {
 		)
 	}
 }
+
+func TestAssignAttackers(t *testing.T) {
+	// TODO:
+	t.Fatalf("TestAssignAttackers() not implemented")
+}
