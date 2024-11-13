@@ -212,18 +212,8 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 			return false
 		}
 
-		// TODO: if no mosters are attacked, players cannot attack and lose
-		// TODO: extract to a function
-		// noMonstersAttacked := true
-		// for _, attackers := range monsterAttackers {
-		//   if len(attackers) > 0 {
-		//     noMonstersAttacked = false
-		//     break
-		//   }
-		// }
-		// if noMonstersAttacked {
-		//   return false
-		// }
+		// TODO:
+		// damageToMonsters := resolveAttacks(players, monsters, monsterAttackers)
 
 		// TODO:
 
@@ -242,16 +232,15 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 			// monsters cannot attack anyone, hence they lose
 			return true
 		}
-		// TODO: if no players are attacked, monsters cannot attack and lose
+
+		// TODO:
+		// damageToPlayers := resolveAttacks(monsters, players, playerAttackers)
 
 		// TODO:
 	}
 }
 
-type attacker struct {
-	attackerIdx uint
-	attackIdx   uint
-}
+type attacker struct{ attackerIdx, attackIdx uint }
 
 // assignAttackers assigns attackers to targets.
 // It receives attackers, targets, and attack indexes. It modifies attackers in
