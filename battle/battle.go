@@ -3,6 +3,7 @@ package battle
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/rozag/cabasi/atk"
 	"github.com/rozag/cabasi/creat"
@@ -155,6 +156,8 @@ func (b *Battle) Run(players, monsters []creat.Creature) (bool, error) {
 	return havePlayersWon, nil
 }
 
+// run simulates a battle between 2 groups of Creatures. It returns true if the
+// players win, false otherwise.
 func (b *Battle) run(players, monsters []creat.Creature) bool {
 	playerAtkIdxs := make([]int, len(players))
 	playerTargets := make([][]uint, len(players))
@@ -204,6 +207,23 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 		}
 
 		assignAttackers(monsterAttackers, playerTargets, playerAtkIdxs)
+		if noAttackersAssigned(monsterAttackers) {
+			// players cannot attack anyone, hence they lose
+			return false
+		}
+
+		// TODO: if no mosters are attacked, players cannot attack and lose
+		// TODO: extract to a function
+		// noMonstersAttacked := true
+		// for _, attackers := range monsterAttackers {
+		//   if len(attackers) > 0 {
+		//     noMonstersAttacked = false
+		//     break
+		//   }
+		// }
+		// if noMonstersAttacked {
+		//   return false
+		// }
 
 		// TODO:
 
@@ -218,6 +238,13 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 		}
 
 		assignAttackers(playerAttackers, monsterTargets, monsterAtkIdxs)
+		if noAttackersAssigned(monsterAttackers) {
+			// monsters cannot attack anyone, hence they lose
+			return true
+		}
+		// TODO: if no players are attacked, monsters cannot attack and lose
+
+		// TODO:
 	}
 }
 
@@ -227,8 +254,8 @@ type attacker struct {
 }
 
 // assignAttackers assigns attackers to targets.
-// It receives attackers, targets, and attack indexes.
-// It modifies attackers in place and doesn't return anything.
+// It receives attackers, targets, and attack indexes. It modifies attackers in
+// place.
 // attackers is a slice of size of defenders, each element is a slice of
 // attackers that target the defender with a particular attack.
 // targets is a slice of size of attackers, each element is a slice of defender
@@ -240,5 +267,58 @@ func assignAttackers(
 	targets [][]uint,
 	attackIdxs []int,
 ) {
-	// TODO:
+	if len(attackers) == 0 {
+		return
+	}
+
+	for i := range attackers {
+		attackers[i] = nil
+	}
+
+	if len(targets) == 0 ||
+		len(attackIdxs) == 0 ||
+		len(targets) != len(attackIdxs) {
+		return
+	}
+
+	for attackerIdx, defenderIdxs := range targets {
+		if len(defenderIdxs) == 0 {
+			continue
+		}
+
+		attackIdx := attackIdxs[attackerIdx]
+		if attackIdx < 0 {
+			continue
+		}
+
+		for _, defenderIdx := range defenderIdxs {
+			if defenderIdx >= uint(len(attackers)) {
+				continue
+			}
+
+			attackers[defenderIdx] = append(
+				attackers[defenderIdx],
+				attacker{
+					// Suppressing gosec G115 "integer overflow conversion int -> uint"
+					// because int index will never overflow a uint variable.
+					attackerIdx: uint(attackerIdx), //nolint:gosec
+					attackIdx:   uint(attackIdx),
+				},
+			)
+		}
+	}
+
+	for i := range attackers {
+		attackers[i] = slices.Clip(attackers[i])
+	}
+}
+
+// noAttackersAssigned returns true if no attackers are assigned to any target.
+func noAttackersAssigned(attackers [][]attacker) bool {
+	for _, assigned := range attackers {
+		if len(assigned) > 0 {
+			return false
+		}
+	}
+	return true
 }

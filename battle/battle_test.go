@@ -1,6 +1,7 @@
 package battle
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/rozag/cabasi/atk"
@@ -283,6 +284,236 @@ func TestRunDoesNotMutateCreatures(t *testing.T) {
 }
 
 func TestAssignAttackers(t *testing.T) {
-	// TODO:
-	t.Fatalf("TestAssignAttackers() not implemented")
+	tests := []struct {
+		name       string
+		attackers  [][]attacker
+		targets    [][]uint
+		attackIdxs []int
+		want       [][]attacker
+	}{
+		{
+			name:       "EmptyAttackers",
+			attackers:  [][]attacker{},
+			targets:    [][]uint{{0, 1}, {1, 2}},
+			attackIdxs: []int{0, 1},
+			want:       [][]attacker{},
+		},
+		{
+			name:       "NilAttackers",
+			attackers:  nil,
+			targets:    [][]uint{{0}, {1, 2}},
+			attackIdxs: []int{0, 1},
+			want:       nil,
+		},
+		{
+			name:       "EmptyTargets",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{},
+			attackIdxs: []int{0, 1},
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "NilTargets",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    nil,
+			attackIdxs: []int{0, 1},
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "AllTargetsEmpty",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{}, {}},
+			attackIdxs: []int{0, 1},
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "AllTargetsNil",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{nil, nil},
+			attackIdxs: []int{0, 1},
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "InvalidIdxsInTargets",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{2, 3}, {4}},
+			attackIdxs: []int{1, 0},
+			want:       [][]attacker{nil, nil, {{attackerIdx: 0, attackIdx: 1}}},
+		},
+		{
+			name:       "EmptyAttackIdxs",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0, 1}, {1, 2}},
+			attackIdxs: []int{},
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "NilAttackIdxs",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0, 1}, {1, 2}},
+			attackIdxs: nil,
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "NegativeAttackIdxs",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0, 1}, {1, 2}},
+			attackIdxs: []int{1, -1},
+			want: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 1}},
+				{{attackerIdx: 0, attackIdx: 1}},
+				nil,
+			},
+		},
+		{
+			name: "DirtyAttackersReset",
+			attackers: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}},
+				{{attackerIdx: 1, attackIdx: 0}},
+				{{attackerIdx: 2, attackIdx: 0}},
+			},
+			targets:    [][]uint{nil, {1}, nil},
+			attackIdxs: []int{-1, 0, -1},
+			want:       [][]attacker{nil, {{attackerIdx: 1, attackIdx: 0}}, nil},
+		},
+		{
+			name:       "TargetsAndAttackIdxsOfDifferentLength",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0, 1}, {1, 2}},
+			attackIdxs: []int{0},
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
+			name:       "AllAttackersAttack",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0}, {1}, {2}, {0}},
+			attackIdxs: []int{0, 1, 2, 3},
+			want: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}, {attackerIdx: 3, attackIdx: 3}},
+				{{attackerIdx: 1, attackIdx: 1}},
+				{{attackerIdx: 2, attackIdx: 2}},
+			},
+		},
+		{
+			name:       "SomeAttackersAttack",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0}, nil, nil, {0}},
+			attackIdxs: []int{0, -1, -1, 3},
+			want: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}, {attackerIdx: 3, attackIdx: 3}},
+				nil,
+				nil,
+			},
+		},
+		{
+			name:       "SomeAttackersAttackMultipleTargets",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0, 1}, {2}, {1, 2}, {0}},
+			attackIdxs: []int{0, 1, 2, 3},
+			want: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}, {attackerIdx: 3, attackIdx: 3}},
+				{{attackerIdx: 0, attackIdx: 0}, {attackerIdx: 2, attackIdx: 2}},
+				{{attackerIdx: 1, attackIdx: 1}, {attackerIdx: 2, attackIdx: 2}},
+			},
+		},
+		{
+			name:       "AllAttackersAttackMultipleTargets",
+			attackers:  [][]attacker{nil, nil, nil},
+			targets:    [][]uint{{0, 1, 2}, {0, 1, 2}, {0, 1, 2}, {0, 1, 2}},
+			attackIdxs: []int{0, 1, 2, 3},
+			want: [][]attacker{
+				{
+					{attackerIdx: 0, attackIdx: 0},
+					{attackerIdx: 1, attackIdx: 1},
+					{attackerIdx: 2, attackIdx: 2},
+					{attackerIdx: 3, attackIdx: 3},
+				},
+				{
+					{attackerIdx: 0, attackIdx: 0},
+					{attackerIdx: 1, attackIdx: 1},
+					{attackerIdx: 2, attackIdx: 2},
+					{attackerIdx: 3, attackIdx: 3},
+				},
+				{
+					{attackerIdx: 0, attackIdx: 0},
+					{attackerIdx: 1, attackIdx: 1},
+					{attackerIdx: 2, attackIdx: 2},
+					{attackerIdx: 3, attackIdx: 3},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assignAttackers(test.attackers, test.targets, test.attackIdxs)
+			if !slices.EqualFunc(test.attackers, test.want, slices.Equal) {
+				t.Fatalf(
+					"assignAttackers(): want %v, got %v", test.want, test.attackers,
+				)
+			}
+		})
+	}
+}
+
+func TestNoAttackersAssigned(t *testing.T) {
+	tests := []struct {
+		name      string
+		attackers [][]attacker
+		want      bool
+	}{
+		{
+			name:      "EmptyAttackers",
+			attackers: [][]attacker{},
+			want:      true,
+		},
+		{
+			name:      "NilAttackers",
+			attackers: nil,
+			want:      true,
+		},
+		{
+			name:      "AllAttackersEmpty",
+			attackers: [][]attacker{{}, {}, {}},
+			want:      true,
+		},
+		{
+			name:      "AllAttackersNil",
+			attackers: [][]attacker{nil, nil, nil},
+			want:      true,
+		},
+		{
+			name:      "SomeAttackersAssigned",
+			attackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}, nil, {}},
+			want:      false,
+		},
+		{
+			name: "AllAttackersAssigned",
+			attackers: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}, {attackerIdx: 1, attackIdx: 1}},
+				{{attackerIdx: 2, attackIdx: 2}},
+				{{attackerIdx: 3, attackIdx: 3}},
+			},
+			want: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			initial := make([][]attacker, len(test.attackers))
+			for i, assigned := range test.attackers {
+				initial[i] = make([]attacker, len(assigned))
+				copy(initial[i], assigned)
+			}
+
+			if got := noAttackersAssigned(test.attackers); got != test.want {
+				t.Fatalf("noAttackersAssigned(): want %t, got %t", test.want, got)
+			}
+
+			if !slices.EqualFunc(test.attackers, initial, slices.Equal) {
+				t.Fatalf(
+					"noAttackersAssigned(): attackers mutated, want %v, got %v",
+					initial, test.attackers,
+				)
+			}
+		})
+	}
 }
