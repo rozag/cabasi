@@ -10,21 +10,6 @@ import (
 	"github.com/rozag/cabasi/dice"
 )
 
-// Log is an interface for logging the battle events.
-type Log interface {
-	// Roll logs a roll of a dice for a creature, a save of some sort.
-	Roll(c creat.Creature, roll uint8)
-
-	// Attack logs an attack of an attacker on a defender with a specific attack
-	// and damage dealt.
-	Attack(
-		attacker creat.Creature,
-		defenders []creat.Creature,
-		attack atk.Attack,
-		damage uint,
-	)
-}
-
 // PickAttack is a function that picks which attack the attacker will use.
 // It receives an attacker and a slice of defenders.
 // It returns index of the attack the attacker will use.
@@ -40,14 +25,12 @@ type PickTargets func(attack atk.Attack, defenders []creat.Creature) []uint
 // Battle represents a battle between 2 parties.
 type Battle struct {
 	rng         dice.RNG
-	log         Log
 	pickAttack  PickAttack
 	pickTargets PickTargets
 }
 
-// New creates a new Battle with the provided RNG and Log.
+// New creates a new Battle with the provided RNG and strategies.
 // The RNG is used for all the rolls.
-// The Log is used for logging the battle events.
 // The PickAttack is a function that picks which attack the attacker will use.
 // The PickTargets is a function that picks targets for an attack.
 // New returns an error if input is invalid in any way. The error has an
@@ -55,7 +38,6 @@ type Battle struct {
 // valid.
 func New(
 	rng dice.RNG,
-	log Log,
 	pickAttack PickAttack,
 	pickTargets PickTargets,
 ) (*Battle, error) {
@@ -63,10 +45,6 @@ func New(
 
 	if rng == nil {
 		errs = append(errs, errors.New("RNG must be provided"))
-	}
-
-	if log == nil {
-		errs = append(errs, errors.New("Log must be provided"))
 	}
 
 	if pickAttack == nil {
@@ -81,7 +59,7 @@ func New(
 		return nil, errors.Join(errs...)
 	}
 
-	battle := Battle{rng, log, pickAttack, pickTargets}
+	battle := Battle{rng, pickAttack, pickTargets}
 	return &battle, nil
 }
 
@@ -162,10 +140,12 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 	playerAtkIdxs := make([]int, len(players))
 	playerTargets := make([][]uint, len(players))
 	playerAttackers := make([][]attacker, len(players))
+	damageToPlayers := make([]damage, len(players))
 
 	monsterAtkIdxs := make([]int, len(monsters))
 	monsterTargets := make([][]uint, len(monsters))
 	monsterAttackers := make([][]attacker, len(monsters))
+	damageToMonsters := make([]damage, len(monsters))
 
 	for {
 		_ = players  // TODO: remove
@@ -212,8 +192,11 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 			return false
 		}
 
-		// TODO:
-		// damageToMonsters := resolveAttacks(players, monsters, monsterAttackers)
+		resolveAttacks(damageToMonsters, players, monsters, monsterAttackers, b.rng)
+		if noDamageDone(damageToMonsters) {
+			// players cannot deal any damage, hence they lose
+			return false
+		}
 
 		// TODO:
 
@@ -229,12 +212,15 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 
 		assignAttackers(playerAttackers, monsterTargets, monsterAtkIdxs)
 		if noAttackersAssigned(monsterAttackers) {
-			// monsters cannot attack anyone, hence they lose
+			// monsters cannot attack anyone, hence players win
 			return true
 		}
 
-		// TODO:
-		// damageToPlayers := resolveAttacks(monsters, players, playerAttackers)
+		resolveAttacks(damageToPlayers, monsters, players, playerAttackers, b.rng)
+		if noDamageDone(damageToPlayers) {
+			// monsters cannot deal any damage, hence players win
+			return true
+		}
 
 		// TODO:
 	}
@@ -306,6 +292,39 @@ func assignAttackers(
 func noAttackersAssigned(attackers [][]attacker) bool {
 	for _, assigned := range attackers {
 		if len(assigned) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+type damage struct {
+	characteristic atk.Characteristic
+	value          uint
+}
+
+// resolveAttacks computes the damage dealt to the defenders by the attackers.
+// It receives damageToDefenders, attackers, defenders, assignedAttackers, and
+// RNG. It modifies damageToDefenders in place.
+// damageToDefenders is a slice of damage dealt to each defender.
+// attackers is a slice of all attackers.
+// defenders is a slice of all defenders.
+// assignedAttackers is a slice of size of defenders, each element is a slice of
+// attackers that target the defender with a particular attack.
+// RNG is used for all the rolls.
+func resolveAttacks(
+	damageToDefenders []damage,
+	attackers, defenders []creat.Creature,
+	assignedAttackers [][]attacker,
+	rng dice.RNG,
+) {
+	// TODO:
+}
+
+// noDamageDone returns true if no damage is done after resolving the attacks.
+func noDamageDone(damage []damage) bool {
+	for _, dmg := range damage {
+		if dmg.value > 0 {
 			return false
 		}
 	}

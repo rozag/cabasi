@@ -1,6 +1,8 @@
 package battle
 
 import (
+	"errors"
+	"fmt"
 	"slices"
 	"testing"
 
@@ -9,71 +11,88 @@ import (
 	"github.com/rozag/cabasi/dice"
 )
 
-type dummyRNG struct{}
+type minRNG struct{}
 
-func (dummyRNG) UintN(uint) uint { return 0 }
+func (minRNG) UintN(uint) uint { return 0 }
 
-type dummyLog struct{}
+type maxRNG struct{}
 
-func (dummyLog) Roll(creat.Creature, uint8) {}
+func (maxRNG) UintN(n uint) uint { return n - 1 }
 
-func (dummyLog) Attack(creat.Creature, []creat.Creature, atk.Attack, uint) {}
+type sequenceRNG struct {
+	seq []uint
+	idx uint
+}
+
+func (s *sequenceRNG) UintN(n uint) uint {
+	if n == 0 {
+		panic(errors.New("sequenceRNG: n must be greater than 0"))
+	}
+	if len(s.seq) == 0 {
+		panic(errors.New("sequenceRNG: no values"))
+	}
+	if s.idx >= uint(len(s.seq)) {
+		panic(fmt.Errorf(
+			"sequenceRNG: no more values: idx=%d, len(seq)=%d", s.idx, len(s.seq),
+		))
+	}
+	value := s.seq[s.idx]
+	if value >= n {
+		panic(
+			fmt.Errorf("sequenceRNG: value must be from [0, n=%d), got %d", n, value),
+		)
+	}
+	s.idx++
+	return value
+}
 
 func dummyPickAttack(creat.Creature, []creat.Creature) int { return -1 }
 
 func dummyPickTargets(atk.Attack, []creat.Creature) []uint { return nil }
 
 func TestNewValidation(t *testing.T) {
-	rng := dummyRNG{}
-	log := dummyLog{}
+	rng := minRNG{}
 	tests := []struct {
 		rng         dice.RNG
-		log         Log
 		pickAttack  PickAttack
 		pickTargets PickTargets
 		name        string
 		wantErrCnt  uint
 	}{
 		{
-			name: "ValidNew",
-			rng:  rng, log: log,
+			name:       "ValidNew",
+			rng:        rng,
 			pickAttack: dummyPickAttack, pickTargets: dummyPickTargets,
 			wantErrCnt: 0,
 		},
 		{
-			name: "NoRNG",
-			rng:  nil, log: log,
+			name:       "NoRNG",
+			rng:        nil,
 			pickAttack: dummyPickAttack, pickTargets: dummyPickTargets,
 			wantErrCnt: 1,
 		},
 		{
-			name: "NoLog",
-			rng:  rng, log: nil,
-			pickAttack: dummyPickAttack, pickTargets: dummyPickTargets,
-			wantErrCnt: 1,
-		},
-		{
-			name: "NoPickAttack",
-			rng:  rng, log: log,
+			name:       "NoPickAttack",
+			rng:        rng,
 			pickAttack: nil, pickTargets: dummyPickTargets,
 			wantErrCnt: 1,
 		},
 		{
-			name: "NoPickTargets",
-			rng:  rng, log: log,
+			name:       "NoPickTargets",
+			rng:        rng,
 			pickAttack: dummyPickAttack, pickTargets: nil,
 			wantErrCnt: 1,
 		},
 		{
-			name: "MultipleErrors",
-			rng:  nil, log: nil,
+			name:       "MultipleErrors",
+			rng:        nil,
 			pickAttack: nil, pickTargets: nil,
-			wantErrCnt: 4,
+			wantErrCnt: 3,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := New(test.rng, test.log, test.pickAttack, test.pickTargets)
+			_, err := New(test.rng, test.pickAttack, test.pickTargets)
 
 			if test.wantErrCnt == 0 {
 				if err != nil {
@@ -196,7 +215,7 @@ func TestRunValidation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			b, err := New(dummyRNG{}, dummyLog{}, dummyPickAttack, dummyPickTargets)
+			b, err := New(minRNG{}, dummyPickAttack, dummyPickTargets)
 			if err != nil {
 				t.Fatalf("New(): want nil error, got %v", err)
 			}
@@ -229,7 +248,7 @@ func TestRunValidation(t *testing.T) {
 }
 
 func TestRunDoesNotMutateCreatures(t *testing.T) {
-	b, err := New(dummyRNG{}, dummyLog{}, dummyPickAttack, dummyPickTargets)
+	b, err := New(minRNG{}, dummyPickAttack, dummyPickTargets)
 	if err != nil {
 		t.Fatalf("New(): want nil error, got %v", err)
 	}
@@ -377,6 +396,17 @@ func TestAssignAttackers(t *testing.T) {
 			want:       [][]attacker{nil, {{attackerIdx: 1, attackIdx: 0}}, nil},
 		},
 		{
+			name: "DirtyAttackersResetWithInvalidInputs",
+			attackers: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}},
+				{{attackerIdx: 1, attackIdx: 0}},
+				{{attackerIdx: 2, attackIdx: 0}},
+			},
+			targets:    nil,
+			attackIdxs: nil,
+			want:       [][]attacker{nil, nil, nil},
+		},
+		{
 			name:       "TargetsAndAttackIdxsOfDifferentLength",
 			attackers:  [][]attacker{nil, nil, nil},
 			targets:    [][]uint{{0, 1}, {1, 2}},
@@ -512,6 +542,432 @@ func TestNoAttackersAssigned(t *testing.T) {
 				t.Fatalf(
 					"noAttackersAssigned(): attackers mutated, want %v, got %v",
 					initial, test.attackers,
+				)
+			}
+		})
+	}
+}
+
+func TestResolveAttacks(t *testing.T) {
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	player0 := creat.Creature{
+		ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+		IsDetachment: false,
+	}
+	monster0 := creat.Creature{
+		ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+		IsDetachment: false,
+	}
+	tests := []struct {
+		name                 string
+		damageToDefenders    []damage
+		attackers, defenders []creat.Creature
+		assignedAttackers    [][]attacker
+		rng                  dice.RNG
+		want                 []damage
+	}{
+		{
+			name:              "EmptyDamageToDefenders",
+			damageToDefenders: []damage{},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{},
+		},
+		{
+			name:              "NilDamageToDefenders",
+			damageToDefenders: nil,
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              nil,
+		},
+		{
+			name:              "EmptyAttackers",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "NilAttackers",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         nil,
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "EmptyDefenders",
+			damageToDefenders: []damage{},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{},
+		},
+		{
+			name:              "NilDefenders",
+			damageToDefenders: []damage{},
+			attackers:         []creat.Creature{player0},
+			defenders:         nil,
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{},
+		},
+		{
+			name:              "EmptyAssignedAttackers",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "NilAssignedAttackers",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: nil,
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "AllAssignedAttackersEmpty",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "AllAssignedAttackersNil",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{nil},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "NilRNG",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               nil,
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name: "DamageToDefendersAndDefendersOfDifferentLength",
+			damageToDefenders: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+		},
+		{
+			name:              "DefendersAndAssignedAttackersOfDifferentLength",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}},
+				{{attackerIdx: 1, attackIdx: 0}},
+			},
+			rng:  maxRNG{},
+			want: []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "AssignedAttackersOut",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders: []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{
+				{attackerIdx: 0, attackIdx: 0},
+				{attackerIdx: 1, attackIdx: 0},
+			}},
+			rng:  maxRNG{},
+			want: []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "TargetedDefendersOut",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "InvalidAttackerIndexes",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 1, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "InvalidAttackIndexes",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 1}}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "AttackWithNoCharges",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Fireball", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 1, Charges: 0,
+							IsBlast: true,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "DirtyDamageToDefendersReset",
+			damageToDefenders: []damage{{characteristic: atk.DEX, value: 6}},
+			attackers:         []creat.Creature{player0},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{},
+			rng:               maxRNG{},
+			want:              []damage{{characteristic: atk.STR, value: 0}},
+		},
+		{
+			name:              "SeveralAttacksToDifferentCharacteristics",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Spear", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 1, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Delirium", TargetCharacteristic: atk.WIL,
+							Dice: dice.D8, DiceCnt: 1, Charges: 1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders: []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{
+				{attackerIdx: 0, attackIdx: 0},
+				{attackerIdx: 1, attackIdx: 0},
+			}},
+			rng:  maxRNG{},
+			want: []damage{{characteristic: atk.WIL, value: 8}},
+		},
+		{
+			name:              "SingleAttackWithMultipleDice",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Spear", TargetCharacteristic: atk.STR,
+							Dice: dice.D8, DiceCnt: 2, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders:         []creat.Creature{monster0},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			rng:               &sequenceRNG{seq: []uint{3, 6}, idx: 0},
+			want:              []damage{{characteristic: atk.STR, value: 7}},
+		},
+		{
+			name:              "MultipleAttacksWithMultipleDice",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Spear", TargetCharacteristic: atk.STR,
+							Dice: dice.D8, DiceCnt: 2, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Sword", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 2, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			assignedAttackers: [][]attacker{{
+				{attackerIdx: 0, attackIdx: 0},
+				{attackerIdx: 1, attackIdx: 0},
+			}},
+			rng:  &sequenceRNG{seq: []uint{0, 4, 3, 5}, idx: 0},
+			want: []damage{{characteristic: atk.STR, value: 5}},
+		},
+		// TODO: all attackers attack different targets
+		// TODO: some attackers attack different targets
+		// TODO: some attackers attack multiple targets
+		// TODO: all attackers attack multiple targets
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resolveAttacks(
+				test.damageToDefenders,
+				test.attackers,
+				test.defenders,
+				test.assignedAttackers,
+				test.rng,
+			)
+			if !slices.Equal(test.damageToDefenders, test.want) {
+				t.Fatalf(
+					"resolveAttacks(): want %v, got %v",
+					test.want, test.damageToDefenders,
+				)
+			}
+		})
+	}
+}
+
+func TestNoDamageDone(t *testing.T) {
+	tests := []struct {
+		name   string
+		damage []damage
+		want   bool
+	}{
+		{
+			name:   "EmptyDamage",
+			damage: []damage{},
+			want:   true,
+		},
+		{
+			name:   "NilDamage",
+			damage: nil,
+			want:   true,
+		},
+		{
+			name: "AllDamageZero",
+			damage: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.DEX, value: 0},
+				{characteristic: atk.WIL, value: 0},
+			},
+			want: true,
+		},
+		{
+			name: "SomeDamageSet",
+			damage: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.DEX, value: 1},
+				{characteristic: atk.WIL, value: 0},
+			},
+			want: false,
+		},
+		{
+			name: "AllDamageSet",
+			damage: []damage{
+				{characteristic: atk.STR, value: 1},
+				{characteristic: atk.DEX, value: 2},
+				{characteristic: atk.WIL, value: 3},
+			},
+			want: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			initial := make([]damage, len(test.damage))
+			copy(initial, test.damage)
+
+			if got := noDamageDone(test.damage); got != test.want {
+				t.Fatalf("noDamageDone(): want %t, got %t", test.want, got)
+			}
+
+			if !slices.Equal(test.damage, initial) {
+				t.Fatalf(
+					"noDamageDone(): damage mutated, want %v, got %v",
+					initial, test.damage,
 				)
 			}
 		})
