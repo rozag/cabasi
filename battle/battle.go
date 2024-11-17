@@ -3,6 +3,7 @@ package battle
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 
 	"github.com/rozag/cabasi/atk"
@@ -300,10 +301,11 @@ func noAttackersAssigned(attackers [][]attacker) bool {
 
 type damage struct {
 	characteristic atk.Characteristic
-	value          uint
+	value          uint8
 }
 
-// resolveAttacks computes the damage dealt to the defenders by the attackers.
+// resolveAttacks computes the damage dealt to the defenders by the attackers
+// and decreases attacks' charges if they're not unlimited (-1).
 // It receives damageToDefenders, attackers, defenders, assignedAttackers, and
 // RNG. It modifies damageToDefenders in place.
 // damageToDefenders is a slice of damage dealt to each defender.
@@ -318,7 +320,113 @@ func resolveAttacks(
 	assignedAttackers [][]attacker,
 	rng dice.RNG,
 ) {
-	// TODO:
+	if len(damageToDefenders) == 0 {
+		return
+	}
+
+	for i := range damageToDefenders {
+		damageToDefenders[i].characteristic = atk.STR
+		damageToDefenders[i].value = 0
+	}
+
+	if len(attackers) == 0 ||
+		len(defenders) == 0 ||
+		len(assignedAttackers) == 0 ||
+		len(defenders) != len(damageToDefenders) ||
+		len(defenders) != len(assignedAttackers) ||
+		rng == nil {
+		return
+	}
+
+	for defenderIdx := range damageToDefenders {
+		if defenders[defenderIdx].IsOut() ||
+			len(assignedAttackers[defenderIdx]) == 0 {
+			continue
+		}
+
+		maxDamageCharacteristic := atk.STR
+		maxDamageValue := uint8(0)
+		for _, assigned := range assignedAttackers[defenderIdx] {
+			attackerIdx := assigned.attackerIdx
+			if attackerIdx >= uint(len(attackers)) {
+				continue
+			}
+
+			attacker := attackers[attackerIdx]
+			if attacker.IsOut() {
+				continue
+			}
+
+			attackIdx := assigned.attackIdx
+			if attackIdx >= uint(len(attacker.Attacks)) {
+				continue
+			}
+
+			attack := attacker.Attacks[attackIdx]
+			if attack.Charges == 0 {
+				continue
+			}
+
+			maxDmg := uint8(0)
+			for range attack.DiceCnt {
+				dmg := attack.Dice.Roll(rng)
+				if dmg > maxDmg {
+					maxDmg = dmg
+				}
+			}
+
+			if maxDmg > maxDamageValue {
+				maxDamageCharacteristic = attack.TargetCharacteristic
+				maxDamageValue = maxDmg
+			}
+		}
+
+		if maxDamageValue > 0 {
+			if maxDamageCharacteristic == atk.STR &&
+				defenders[defenderIdx].Armor > 0 {
+				if maxDamageValue >= defenders[defenderIdx].Armor {
+					maxDamageValue -= defenders[defenderIdx].Armor
+				}
+			}
+			damageToDefenders[defenderIdx].characteristic = maxDamageCharacteristic
+			damageToDefenders[defenderIdx].value = maxDamageValue
+		}
+	}
+
+	usedAttackIdxs := make([]int, len(attackers))
+	for attackerIdx := range usedAttackIdxs {
+		usedAttackIdxs[attackerIdx] = -1
+	}
+
+	for _, allAssigned := range assignedAttackers {
+		for _, assigned := range allAssigned {
+			attackerIdx := assigned.attackerIdx
+			if attackerIdx >= uint(len(attackers)) {
+				continue
+			}
+
+			attackIdx := assigned.attackIdx
+			if attackIdx >= uint(len(attackers[attackerIdx].Attacks)) {
+				continue
+			}
+
+			if attackIdx > uint(math.MaxInt) {
+				continue
+			}
+
+			usedAttackIdxs[attackerIdx] = int(attackIdx)
+		}
+	}
+
+	for attackerIdx, usedAttackIdx := range usedAttackIdxs {
+		if usedAttackIdx < 0 {
+			continue
+		}
+
+		if attackers[attackerIdx].Attacks[usedAttackIdx].Charges > 0 {
+			attackers[attackerIdx].Attacks[usedAttackIdx].Charges--
+		}
+	}
 }
 
 // noDamageDone returns true if no damage is done after resolving the attacks.
