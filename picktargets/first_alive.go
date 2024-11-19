@@ -4,11 +4,8 @@ import (
 	"slices"
 
 	"github.com/rozag/cabasi/atk"
-	"github.com/rozag/cabasi/battle"
 	"github.com/rozag/cabasi/creat"
 )
-
-var _ battle.PickTargets = FirstAlive
 
 // FirstAlive is a function that picks the first available not-out-of-battle
 // defenders for the selected attack.
@@ -36,7 +33,7 @@ func FirstAlive(attack atk.Attack, defenders []creat.Creature) []uint {
 		}
 
 		if !defender.IsOut() {
-			// Suppressing gosec G115 "integer overflow conversion int -> uint"
+			// Suppressing gosec "G115 integer overflow conversion int -> uint"
 			// because int index will never overflow a uint variable.
 			indexes = append(indexes, uint(idx)) //nolint:gosec
 		}

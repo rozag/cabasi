@@ -263,7 +263,7 @@ func assignAttackers(
 			attackers[defenderIdx] = append(
 				attackers[defenderIdx],
 				attacker{
-					// Suppressing gosec G115 "integer overflow conversion int -> uint"
+					// Suppressing gosec "G115 integer overflow conversion int -> uint"
 					// because int index will never overflow a uint variable.
 					attackerIdx: uint(attackerIdx), //nolint:gosec
 					attackIdx:   uint(attackIdx),
@@ -293,7 +293,8 @@ type damage struct {
 }
 
 // resolveAttacks computes the damage dealt to the defenders by the attackers
-// and decreases attacks' charges if they're not unlimited (-1).
+// (armor is taken into account) and decreases attacks' charges if they're not
+// unlimited (-1).
 // It receives damageToDefenders, attackers, defenders, assignedAttackers, and
 // RNG. It modifies damageToDefenders in place.
 // damageToDefenders is a slice of damage dealt to each defender.
@@ -314,6 +315,12 @@ func resolveAttacks(
 	if len(damageToDefenders) == 0 {
 		return
 	}
+
+	// TODO:
+	// - Attacks against detachments by individuals are Impaired (excluding Blast
+	// damage).
+	// - Attacks against individuals by detachments are Enhanced and deal Blast
+	// damage.
 
 	for i := range damageToDefenders {
 		damageToDefenders[i].characteristic = atk.STR
@@ -431,16 +438,75 @@ func noDamageDone(damage []damage) bool {
 	return true
 }
 
-// TODO: comment
+// applyDamageToPlayers decreases player's characteristics according to damage
+// received (armor is NOT taken into account) and handles critical damage (as
+// reducing STR to 0).
+// It receives players, damageToPlayers, and RNG. It modifies players in place.
+// players is a slice of all players.
+// damageToPlayers is a slice of damage dealt to each player.
+// RNG is used for all the rolls.
 func applyDamageToPlayers(
 	players []creat.Creature,
 	damageToPlayers []damage,
 	rng dice.RNG,
 ) {
-	// TODO: handle critical damage (as reducing STR to 0)
+	if len(players) == 0 ||
+		len(damageToPlayers) == 0 ||
+		len(players) != len(damageToPlayers) ||
+		rng == nil {
+		return
+	}
+
+	for playerIdx := range players {
+		if players[playerIdx].IsOut() {
+			continue
+		}
+
+		value := damageToPlayers[playerIdx].value
+		if value == 0 {
+			continue
+		}
+
+		switch c := damageToPlayers[playerIdx].characteristic; c {
+		case atk.STR:
+			if value <= players[playerIdx].HP {
+				players[playerIdx].HP -= value
+				continue
+			}
+
+			value -= players[playerIdx].HP
+			players[playerIdx].HP = 0
+
+			if value >= players[playerIdx].STR {
+				players[playerIdx].STR = 0
+				continue
+			}
+
+			players[playerIdx].STR -= value
+			if dice.D20.Roll(rng) > players[playerIdx].STR {
+				players[playerIdx].STR = 0
+			}
+
+		case atk.DEX:
+			players[playerIdx].DEX -= value
+
+		case atk.WIL:
+			players[playerIdx].WIL -= value
+
+		default:
+			panic(fmt.Errorf("unknown Characteristic: %d", c))
+		}
+	}
 }
 
-// TODO: comment
+// applyDamageToMonsters decreases monster's characteristics according to damage
+// received (armor is NOT taken into account) and handles fleeing (as reducing
+// STR to 0).
+// It receives monsters, damageToMonsters, and RNG. It modifies monsters in
+// place.
+// monsters is a slice of all monsters.
+// damageToMonsters is a slice of damage dealt to each monster.
+// RNG is used for all the rolls.
 func applyDamageToMonsters(
 	monsters []creat.Creature,
 	damageToMonsters []damage,
@@ -458,8 +524,12 @@ func applyDamageToMonsters(
 	// to 0 on attack resolve or have DEX or WIL as 0 because of some effect
 }
 
-// TODO: comment
+// allOut returns true if all creatures are out.
 func allOut(creatures []creat.Creature) bool {
-	// TODO:
-	return false
+	for _, c := range creatures {
+		if !c.IsOut() {
+			return false
+		}
+	}
+	return true
 }

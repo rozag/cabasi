@@ -1,11 +1,8 @@
 package pickatk
 
 import (
-	"github.com/rozag/cabasi/battle"
 	"github.com/rozag/cabasi/creat"
 )
-
-var _ battle.PickAttack = MaxDmg
 
 // MaxDmg is a function that picks an attack that will deal the maximum damage
 // to the defenders.

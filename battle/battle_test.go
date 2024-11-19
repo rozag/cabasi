@@ -3,12 +3,15 @@ package battle
 import (
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"slices"
 	"testing"
 
 	"github.com/rozag/cabasi/atk"
 	"github.com/rozag/cabasi/creat"
 	"github.com/rozag/cabasi/dice"
+	"github.com/rozag/cabasi/pickatk"
+	"github.com/rozag/cabasi/picktargets"
 )
 
 type minRNG struct{}
@@ -44,6 +47,11 @@ func (s *sequenceRNG) UintN(n uint) uint {
 	}
 	s.idx++
 	return value
+}
+
+func newDeterministicRNG() *rand.Rand {
+	// Suppressing gosec "G404 Use of weak random number generator" in tests.
+	return rand.New(rand.NewPCG(0x436169726E, 0x525047)) //nolint:gosec
 }
 
 func dummyPickAttack(creat.Creature, []creat.Creature) int { return -1 }
@@ -248,7 +256,7 @@ func TestRunValidation(t *testing.T) {
 }
 
 func TestRunDoesNotMutateCreatures(t *testing.T) {
-	b, err := New(minRNG{}, dummyPickAttack, dummyPickTargets)
+	b, err := New(newDeterministicRNG(), pickatk.MaxDmg, picktargets.FirstAlive)
 	if err != nil {
 		t.Fatalf("New(): want nil error, got %v", err)
 	}
@@ -1561,6 +1569,409 @@ func TestNoDamageDone(t *testing.T) {
 					"noDamageDone(): damage mutated, want %v, got %v",
 					initial, test.damage,
 				)
+			}
+		})
+	}
+}
+
+func TestApplyDamageToPlayers(t *testing.T) {
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	player := creat.Creature{
+		ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+		STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+		IsDetachment: false,
+	}
+	tests := []struct {
+		name            string
+		players         []creat.Creature
+		damageToPlayers []damage
+		rng             dice.RNG
+		want            []creat.Creature
+	}{
+		{
+			name:            "EmptyPlayers",
+			players:         []creat.Creature{},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 4}},
+			rng:             maxRNG{},
+			want:            []creat.Creature{},
+		},
+		{
+			name:            "NilPlayers",
+			players:         nil,
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 4}},
+			rng:             maxRNG{},
+			want:            nil,
+		},
+		{
+			name:            "EmptyDamage",
+			players:         []creat.Creature{player},
+			damageToPlayers: []damage{},
+			rng:             maxRNG{},
+			want:            []creat.Creature{player},
+		},
+		{
+			name:            "NilDamage",
+			players:         []creat.Creature{player},
+			damageToPlayers: nil,
+			rng:             maxRNG{},
+			want:            []creat.Creature{player},
+		},
+		{
+			name:            "NilRNG",
+			players:         []creat.Creature{player},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 4}},
+			rng:             nil,
+			want:            []creat.Creature{player},
+		},
+		{
+			name:    "PlayersShorterThanDamage",
+			players: []creat.Creature{player},
+			damageToPlayers: []damage{
+				{characteristic: atk.STR, value: 4},
+				{characteristic: atk.DEX, value: 2},
+			},
+			rng:  maxRNG{},
+			want: []creat.Creature{player},
+		},
+		{
+			name: "PlayersLongerThanDamage",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 4}},
+			rng:             maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "AllPlayersOut",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{
+				{characteristic: atk.STR, value: 4},
+				{characteristic: atk.STR, value: 4},
+			},
+			rng: maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name:            "AllDamageZero",
+			players:         []creat.Creature{player},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 0}},
+			rng:             maxRNG{},
+			want:            []creat.Creature{player},
+		},
+		{
+			name: "DamageToSTRReducesHP",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{
+				{characteristic: atk.STR, value: 3},
+				{characteristic: atk.STR, value: 4},
+			},
+			rng: maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 1, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToSTRSuccessfulSave",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 7}},
+			rng:             minRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 5, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToSTRFailedSave",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 7}},
+			rng:             maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToSTRKills",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{
+				{characteristic: atk.STR, value: 12},
+				{characteristic: atk.STR, value: 15},
+			},
+			rng: maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToDEX",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{{characteristic: atk.DEX, value: 8}},
+			rng:             maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 6, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToWIL",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{{characteristic: atk.WIL, value: 7}},
+			rng:             maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 1, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			applyDamageToPlayers(test.players, test.damageToPlayers, test.rng)
+			if !creat.CreatureSlice(test.players).Equals(test.want) {
+				t.Fatalf(
+					"applyDamageToPlayers(): players mismatch: want %v, got %v",
+					test.want, test.players,
+				)
+			}
+		})
+	}
+}
+
+func TestApplyDamageToMonsters(t *testing.T) {
+	t.Fatalf("not implemented") // TODO:
+	tests := []struct {
+		name             string
+		monsters         []creat.Creature
+		damageToMonsters []damage
+		rng              dice.RNG
+		want             []creat.Creature
+	}{
+		// TODO:
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			applyDamageToMonsters(test.monsters, test.damageToMonsters, test.rng)
+			if !creat.CreatureSlice(test.monsters).Equals(test.want) {
+				t.Fatalf(
+					"applyDamageToMonsters(): monsters mismatch: want %v, got %v",
+					test.want, test.monsters,
+				)
+			}
+		})
+	}
+}
+
+func TestAllOut(t *testing.T) {
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	tests := []struct {
+		name      string
+		creatures []creat.Creature
+		want      bool
+	}{
+		{
+			name:      "EmptyCreatures",
+			creatures: []creat.Creature{},
+			want:      true,
+		},
+		{
+			name:      "NilCreatures",
+			creatures: nil,
+			want:      true,
+		},
+		{
+			name: "AllCreaturesOut",
+			creatures: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 0, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "SomeCreaturesOut",
+			creatures: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 0, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: false,
+		},
+		{
+			name: "NoCreaturesOut",
+			creatures: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := allOut(test.creatures); got != test.want {
+				t.Fatalf("allOut(): want %t, got %t", test.want, got)
 			}
 		})
 	}

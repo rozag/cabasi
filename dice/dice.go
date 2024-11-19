@@ -49,7 +49,8 @@ type RNG interface {
 
 // Roll rolls the dice and returns the result.
 func (d Dice) Roll(rng RNG) uint8 {
-	// Suppressing "G115: integer overflow conversion uint -> uint8" because we're
-	// getting a number from a dice roll, which is always in the [0,255] interval.
+	// Suppressing gosec "G115: integer overflow conversion uint -> uint8" because
+	// we're getting a number from a dice roll, which is always in the [0,255]
+	// interval.
 	return uint8(rng.UintN(uint(d)) + 1) // nolint:gosec
 }
