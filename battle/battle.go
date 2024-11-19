@@ -141,51 +141,17 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 	playerAtkIdxs := make([]int, len(players))
 	playerTargets := make([][]uint, len(players))
 	playerAttackers := make([][]attacker, len(players))
+	playerUsedAttackIdxs := make([]int, len(players))
 	damageToPlayers := make([]damage, len(players))
 
 	monsterAtkIdxs := make([]int, len(monsters))
 	monsterTargets := make([][]uint, len(monsters))
 	monsterAttackers := make([][]attacker, len(monsters))
+	monsterUsedAttackIdxs := make([]int, len(monsters))
 	damageToMonsters := make([]damage, len(monsters))
 
 	for {
-		_ = players  // TODO: remove
-		_ = monsters // TODO: remove
-		if true {    // TODO: remove
-			return true
-		}
-
-		// TODO:
-		// • Enemies must pass a WIL save to avoid fleeing when they take their
-		//   first casualty and again when they lose half their number.
-		// • Some groups may use their leader’s WIL in place of their own. Lone foes
-		//   must save when they’re reduced to 0 HP.
-
-		// TODO:
-		// attackTargets is several steps:
-		// 1. map targets to all attackers and their attacks
-		// 2. resolve attacks
-		// 3. handle critical damage and fleeing (as reducing STR to 0)
-
-		// TODO:
-		// each round while there are players and monsters alive (but monsters flee)
-		// - all players pick targets
-		// - all players attack, same target -> the highest hit
-		// - all monsters pick targets
-		// - all monsters attack, same target -> the highest hit
-
-		// TODO: dead, incapacitated, or fleeing creatures have either their STR set
-		// to 0 on attack resolve or have DEX or WIL as 0 because of some effect
-
-		for i, player := range players {
-			atkIdx := b.pickAttack(player, monsters)
-			playerAtkIdxs[i] = atkIdx
-			if atkIdx < 0 {
-				playerTargets[i] = nil
-			} else {
-				playerTargets[i] = b.pickTargets(player.Attacks[atkIdx], monsters)
-			}
-		}
+		b.pickAttacksAndTargets(players, monsters, playerAtkIdxs, playerTargets)
 
 		assignAttackers(monsterAttackers, playerTargets, playerAtkIdxs)
 		if noAttackersAssigned(monsterAttackers) {
@@ -193,23 +159,22 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 			return false
 		}
 
-		resolveAttacks(damageToMonsters, players, monsters, monsterAttackers, b.rng)
+		resolveAttacks(
+			damageToMonsters, players, monsters, monsterAttackers,
+			playerUsedAttackIdxs, b.rng,
+		)
 		if noDamageDone(damageToMonsters) {
 			// players cannot deal any damage, hence they lose
 			return false
 		}
 
-		// TODO:
-
-		for i, monster := range monsters {
-			atkIdx := b.pickAttack(monster, players)
-			monsterAtkIdxs[i] = atkIdx
-			if atkIdx < 0 {
-				monsterTargets[i] = nil
-			} else {
-				monsterTargets[i] = b.pickTargets(monster.Attacks[atkIdx], players)
-			}
+		applyDamageToMonsters(monsters, damageToMonsters, b.rng)
+		if allOut(monsters) {
+			// monsters are all out, hence players win
+			return true
 		}
+
+		b.pickAttacksAndTargets(monsters, players, monsterAtkIdxs, monsterTargets)
 
 		assignAttackers(playerAttackers, monsterTargets, monsterAtkIdxs)
 		if noAttackersAssigned(monsterAttackers) {
@@ -217,13 +182,36 @@ func (b *Battle) run(players, monsters []creat.Creature) bool {
 			return true
 		}
 
-		resolveAttacks(damageToPlayers, monsters, players, playerAttackers, b.rng)
+		resolveAttacks(
+			damageToPlayers, monsters, players, playerAttackers,
+			monsterUsedAttackIdxs, b.rng,
+		)
 		if noDamageDone(damageToPlayers) {
 			// monsters cannot deal any damage, hence players win
 			return true
 		}
 
-		// TODO:
+		applyDamageToPlayers(players, damageToPlayers, b.rng)
+		if allOut(players) {
+			// players are all out, hence monsters win
+			return false
+		}
+	}
+}
+
+func (b *Battle) pickAttacksAndTargets(
+	attackers, defenders []creat.Creature,
+	attackIndexes []int,
+	targets [][]uint,
+) {
+	for i, attacker := range attackers {
+		attackIdx := b.pickAttack(attacker, defenders)
+		attackIndexes[i] = attackIdx
+		if attackIdx < 0 {
+			targets[i] = nil
+		} else {
+			targets[i] = b.pickTargets(attacker.Attacks[attackIdx], defenders)
+		}
 	}
 }
 
@@ -313,11 +301,14 @@ type damage struct {
 // defenders is a slice of all defenders.
 // assignedAttackers is a slice of size of defenders, each element is a slice of
 // attackers that target the defender with a particular attack.
+// usedAttackIdxs is a slice of size of attackers, it doesn't matter what's
+// inside because it's cleared before being used and acts as a reusable buffer.
 // RNG is used for all the rolls.
 func resolveAttacks(
 	damageToDefenders []damage,
 	attackers, defenders []creat.Creature,
 	assignedAttackers [][]attacker,
+	usedAttackIdxs []int,
 	rng dice.RNG,
 ) {
 	if len(damageToDefenders) == 0 {
@@ -332,8 +323,10 @@ func resolveAttacks(
 	if len(attackers) == 0 ||
 		len(defenders) == 0 ||
 		len(assignedAttackers) == 0 ||
+		len(usedAttackIdxs) == 0 ||
 		len(defenders) != len(damageToDefenders) ||
 		len(defenders) != len(assignedAttackers) ||
+		len(attackers) != len(usedAttackIdxs) ||
 		rng == nil {
 		return
 	}
@@ -393,7 +386,6 @@ func resolveAttacks(
 		}
 	}
 
-	usedAttackIdxs := make([]int, len(attackers))
 	for attackerIdx := range usedAttackIdxs {
 		usedAttackIdxs[attackerIdx] = -1
 	}
@@ -437,4 +429,37 @@ func noDamageDone(damage []damage) bool {
 		}
 	}
 	return true
+}
+
+// TODO: comment
+func applyDamageToPlayers(
+	players []creat.Creature,
+	damageToPlayers []damage,
+	rng dice.RNG,
+) {
+	// TODO: handle critical damage (as reducing STR to 0)
+}
+
+// TODO: comment
+func applyDamageToMonsters(
+	monsters []creat.Creature,
+	damageToMonsters []damage,
+	rng dice.RNG,
+) {
+	// TODO:
+	// • Enemies must pass a WIL save to avoid fleeing when they take their
+	//   first casualty and again when they lose half their number.
+	// • Some groups may use their leader’s WIL in place of their own.
+	// • Lone foes must save when they’re reduced to 0 HP.
+
+	// TODO: handle fleeing (as reducing STR to 0)
+
+	// TODO: dead, incapacitated, or fleeing creatures have either their STR set
+	// to 0 on attack resolve or have DEX or WIL as 0 because of some effect
+}
+
+// TODO: comment
+func allOut(creatures []creat.Creature) bool {
+	// TODO:
+	return false
 }
