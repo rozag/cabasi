@@ -183,6 +183,52 @@ func TestFirstAlive(t *testing.T) {
 			},
 			want: []uint{0, 1},
 		},
+		{
+			name: "DetachmentVsIndividualsDealsBlastDamage",
+			attacker: creat.Creature{
+				ID: "player-0", Name: "John Appleseed",
+				Attacks: []atk.Attack{spear},
+				STR:     8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: true,
+			},
+			pickedAttackIdx: 0,
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: []uint{0, 1},
+		},
+		{
+			name: "DetachmentVsDetachmentsDealsBlastDamage",
+			attacker: creat.Creature{
+				ID: "player-0", Name: "John Appleseed",
+				Attacks: []atk.Attack{spear},
+				STR:     8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: true,
+			},
+			pickedAttackIdx: 0,
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: true,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: true,
+				},
+			},
+			want: []uint{0, 1},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

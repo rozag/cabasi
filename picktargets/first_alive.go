@@ -28,21 +28,13 @@ func FirstAlive(
 		return nil
 	}
 
-	// TODO:
-	// - Attacks against detachments by individuals are Impaired (excluding Blast
-	// damage).
-	// - Attacks against individuals by detachments are Enhanced and deal Blast
-	// damage.
-	// NOTE: only this last part about detachments to individuals attacks is
-	// relevant here
-
 	attack := attacker.Attacks[pickedAttackIdx]
 	if attack.Charges == 0 {
 		return nil
 	}
 
 	targetsCnt := 1
-	if attack.IsBlast {
+	if attack.IsBlast || attacker.IsDetachment {
 		targetsCnt = len(defenders)
 	}
 
