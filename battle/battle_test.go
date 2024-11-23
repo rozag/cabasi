@@ -56,7 +56,9 @@ func newDeterministicRNG() *rand.Rand {
 
 func dummyPickAttack(creat.Creature, []creat.Creature) int { return -1 }
 
-func dummyPickTargets(atk.Attack, []creat.Creature) []uint { return nil }
+func dummyPickTargets(creat.Creature, uint, []creat.Creature) []uint {
+	return nil
+}
 
 func TestNewValidation(t *testing.T) {
 	rng := minRNG{}

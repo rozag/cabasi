@@ -18,10 +18,14 @@ import (
 type PickAttack func(attacker creat.Creature, defenders []creat.Creature) int
 
 // PickTargets is a function that picks targets for the selected attack.
-// It receives a picked attack and a slice of defenders.
+// It receives an attacker, a picked attack index, and a slice of defenders.
 // It returns a slice of picked defender indexes.
 // It returns nil if there are no defenders to attack.
-type PickTargets func(attack atk.Attack, defenders []creat.Creature) []uint
+type PickTargets func(
+	attacker creat.Creature,
+	pickedAttackIdx uint,
+	defenders []creat.Creature,
+) []uint
 
 // Battle represents a battle between 2 parties.
 type Battle struct {
@@ -210,7 +214,7 @@ func (b *Battle) pickAttacksAndTargets(
 		if attackIdx < 0 {
 			targets[i] = nil
 		} else {
-			targets[i] = b.pickTargets(attacker.Attacks[attackIdx], defenders)
+			targets[i] = b.pickTargets(attacker, uint(attackIdx), defenders)
 		}
 	}
 }
@@ -234,14 +238,6 @@ func assignAttackers(
 	if len(attackers) == 0 {
 		return
 	}
-
-	// TODO:
-	// - Attacks against detachments by individuals are Impaired (excluding Blast
-	// damage).
-	// - Attacks against individuals by detachments are Enhanced and deal Blast
-	// damage.
-	// NOTE: only this last part about detachments to individuals attacks is
-	// relevant here
 
 	for i := range attackers {
 		attackers[i] = nil

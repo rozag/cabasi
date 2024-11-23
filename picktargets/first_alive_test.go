@@ -15,27 +15,36 @@ func TestFirstAlive(t *testing.T) {
 		Dice: dice.D6, DiceCnt: 1, Charges: -1,
 		IsBlast: false,
 	}
+	player0 := creat.Creature{
+		ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+		IsDetachment: false,
+	}
 	tests := []struct {
-		name      string
-		attack    atk.Attack
-		defenders []creat.Creature
-		want      []uint
+		name            string
+		defenders       []creat.Creature
+		want            []uint
+		attacker        creat.Creature
+		pickedAttackIdx uint
 	}{
 		{
-			name:      "NilDefenders",
-			attack:    spear,
-			defenders: nil,
-			want:      nil,
+			name:            "NilDefenders",
+			attacker:        player0,
+			pickedAttackIdx: 0,
+			defenders:       nil,
+			want:            nil,
 		},
 		{
-			name:      "EmptyDefenders",
-			attack:    spear,
-			defenders: []creat.Creature{},
-			want:      nil,
+			name:            "EmptyDefenders",
+			attacker:        player0,
+			pickedAttackIdx: 0,
+			defenders:       []creat.Creature{},
+			want:            nil,
 		},
 		{
-			name:   "AllDefendersOut",
-			attack: spear,
+			name:            "AllDefendersOut",
+			attacker:        player0,
+			pickedAttackIdx: 0,
 			defenders: []creat.Creature{
 				{
 					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
@@ -57,11 +66,19 @@ func TestFirstAlive(t *testing.T) {
 		},
 		{
 			name: "AttackHasNoCharges",
-			attack: atk.Attack{
-				Name: "Sword", TargetCharacteristic: atk.STR,
-				Dice: dice.D6, DiceCnt: 1, Charges: 0,
-				IsBlast: false,
+			attacker: creat.Creature{
+				ID: "player-0", Name: "John Appleseed",
+				Attacks: []atk.Attack{
+					{
+						Name: "Sword", TargetCharacteristic: atk.STR,
+						Dice: dice.D6, DiceCnt: 1, Charges: 0,
+						IsBlast: false,
+					},
+				},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
 			},
+			pickedAttackIdx: 0,
 			defenders: []creat.Creature{
 				{
 					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
@@ -72,8 +89,9 @@ func TestFirstAlive(t *testing.T) {
 			want: nil,
 		},
 		{
-			name:   "PickFirstDefender",
-			attack: spear,
+			name:            "PickFirstDefender",
+			attacker:        player0,
+			pickedAttackIdx: 0,
 			defenders: []creat.Creature{
 				{
 					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
@@ -89,8 +107,9 @@ func TestFirstAlive(t *testing.T) {
 			want: []uint{0},
 		},
 		{
-			name:   "SkipFirstOutOfBattleDefenderAndPickSecond",
-			attack: spear,
+			name:            "SkipFirstOutOfBattleDefenderAndPickSecond",
+			attacker:        player0,
+			pickedAttackIdx: 0,
 			defenders: []creat.Creature{
 				{
 					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
@@ -107,11 +126,19 @@ func TestFirstAlive(t *testing.T) {
 		},
 		{
 			name: "PickSeveralDefendersForBlastAttack",
-			attack: atk.Attack{
-				Name: "Fireball", TargetCharacteristic: atk.STR,
-				Dice: dice.D8, DiceCnt: 1, Charges: 1,
-				IsBlast: true,
+			attacker: creat.Creature{
+				ID: "player-0", Name: "John Appleseed",
+				Attacks: []atk.Attack{
+					{
+						Name: "Fireball", TargetCharacteristic: atk.STR,
+						Dice: dice.D8, DiceCnt: 1, Charges: 1,
+						IsBlast: true,
+					},
+				},
+				STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
 			},
+			pickedAttackIdx: 0,
 			defenders: []creat.Creature{
 				{
 					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
@@ -129,7 +156,7 @@ func TestFirstAlive(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := FirstAlive(test.attack, test.defenders)
+			got := FirstAlive(test.attacker, test.pickedAttackIdx, test.defenders)
 			if !slices.Equal(got, test.want) {
 				t.Fatalf("PickTargetsFirstAlive() = %v, want %v", got, test.want)
 			}
