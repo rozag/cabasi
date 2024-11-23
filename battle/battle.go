@@ -235,6 +235,14 @@ func assignAttackers(
 		return
 	}
 
+	// TODO:
+	// - Attacks against detachments by individuals are Impaired (excluding Blast
+	// damage).
+	// - Attacks against individuals by detachments are Enhanced and deal Blast
+	// damage.
+	// NOTE: only this last part about detachments to individuals attacks is
+	// relevant here
+
 	for i := range attackers {
 		attackers[i] = nil
 	}
@@ -316,12 +324,6 @@ func resolveAttacks(
 		return
 	}
 
-	// TODO:
-	// - Attacks against detachments by individuals are Impaired (excluding Blast
-	// damage).
-	// - Attacks against individuals by detachments are Enhanced and deal Blast
-	// damage.
-
 	for i := range damageToDefenders {
 		damageToDefenders[i].characteristic = atk.STR
 		damageToDefenders[i].value = 0
@@ -367,9 +369,20 @@ func resolveAttacks(
 				continue
 			}
 
+			attackDice := attack.Dice
+			isAttackerDetachment := attacker.IsDetachment
+			isDefenderDetachment := defenders[defenderIdx].IsDetachment
+			if isAttackerDetachment != isDefenderDetachment {
+				if isAttackerDetachment && !isDefenderDetachment {
+					attackDice = dice.D12
+				} else if !attack.IsBlast {
+					attackDice = dice.D4
+				}
+			}
+
 			maxDmg := uint8(0)
 			for range attack.DiceCnt {
-				dmg := attack.Dice.Roll(rng)
+				dmg := attackDice.Roll(rng)
 				if dmg > maxDmg {
 					maxDmg = dmg
 				}

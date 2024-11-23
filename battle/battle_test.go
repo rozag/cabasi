@@ -1484,6 +1484,202 @@ func TestResolveAttacks(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "DetachmentVsDetachmentRegularDamage",
+			damageToDefenders: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Sword", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 1, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: true,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Spear", TargetCharacteristic: atk.STR,
+							Dice: dice.D8, DiceCnt: 1, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: true,
+				},
+			},
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: true,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 2,
+					IsDetachment: true,
+				},
+			},
+			assignedAttackers: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}},
+				{{attackerIdx: 1, attackIdx: 0}},
+			},
+			usedAttackIdxs: []int{42, 123456},
+			rng:            maxRNG{},
+			wantDamage: []damage{
+				{characteristic: atk.STR, value: 5},
+				{characteristic: atk.STR, value: 6},
+			},
+			wantAttackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Sword", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 1, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: true,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Spear", TargetCharacteristic: atk.STR,
+							Dice: dice.D8, DiceCnt: 1, Charges: -1,
+							IsBlast: false,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: true,
+				},
+			},
+		},
+		{
+			name:              "IndividualVsDetachmentImpaired",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: true,
+				},
+			},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			usedAttackIdxs:    []int{42},
+			rng:               maxRNG{},
+			wantDamage:        []damage{{characteristic: atk.STR, value: 3}},
+			wantAttackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name:              "BlastIndividualVsDetachmentRegularDamage",
+			damageToDefenders: []damage{{characteristic: atk.STR, value: 0}},
+			attackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Sword", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 1, Charges: -1,
+							IsBlast: true,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: true,
+				},
+			},
+			assignedAttackers: [][]attacker{{{attackerIdx: 0, attackIdx: 0}}},
+			usedAttackIdxs:    []int{42},
+			rng:               maxRNG{},
+			wantDamage:        []damage{{characteristic: atk.STR, value: 5}},
+			wantAttackers: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed",
+					Attacks: []atk.Attack{
+						{
+							Name: "Sword", TargetCharacteristic: atk.STR,
+							Dice: dice.D6, DiceCnt: 1, Charges: -1,
+							IsBlast: true,
+						},
+					},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DetachmentVsIndividualsEnhancedAndBlast",
+			damageToDefenders: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			attackers: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: true,
+				},
+			},
+			defenders: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 2,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 3,
+					IsDetachment: false,
+				},
+			},
+			assignedAttackers: [][]attacker{
+				{{attackerIdx: 0, attackIdx: 0}},
+				{{attackerIdx: 0, attackIdx: 0}},
+			},
+			usedAttackIdxs: []int{42},
+			rng:            maxRNG{},
+			wantDamage: []damage{
+				{characteristic: atk.STR, value: 10},
+				{characteristic: atk.STR, value: 9},
+			},
+			wantAttackers: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: true,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
