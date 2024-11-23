@@ -28,6 +28,36 @@ func TestFirstAlive(t *testing.T) {
 		pickedAttackIdx uint
 	}{
 		{
+			name: "AttackerIsOut",
+			attacker: creat.Creature{
+				ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+				STR: 0, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+				IsDetachment: false,
+			},
+			pickedAttackIdx: 0,
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: nil,
+		},
+		{
+			name:            "InvalidPickedAttackIdx",
+			attacker:        player0,
+			pickedAttackIdx: 1,
+			defenders: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: nil,
+		},
+		{
 			name:            "NilDefenders",
 			attacker:        player0,
 			pickedAttackIdx: 0,

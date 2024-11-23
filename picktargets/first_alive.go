@@ -16,13 +16,17 @@ func FirstAlive(
 	pickedAttackIdx uint,
 	defenders []creat.Creature,
 ) []uint {
-	if len(defenders) == 0 {
+	if attacker.IsOut() {
 		return nil
 	}
 
-	// TODO: test if attacker is out
+	if pickedAttackIdx >= uint(len(attacker.Attacks)) {
+		return nil
+	}
 
-	// TODO: test if pickedAttackIdx >= len(attacker.Attacks)
+	if len(defenders) == 0 {
+		return nil
+	}
 
 	// TODO:
 	// - Attacks against detachments by individuals are Impaired (excluding Blast
