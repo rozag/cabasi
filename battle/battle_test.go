@@ -2043,6 +2043,25 @@ func TestApplyDamageToPlayers(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "STRSaveNotNeedeedIfHPReducedToExactlyZero",
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToPlayers: []damage{{characteristic: atk.STR, value: 4}},
+			rng:             maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -2058,7 +2077,16 @@ func TestApplyDamageToPlayers(t *testing.T) {
 }
 
 func TestApplyDamageToMonsters(t *testing.T) {
-	t.Fatalf("not implemented") // TODO:
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	monster := creat.Creature{
+		ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+		STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+		IsDetachment: false,
+	}
 	tests := []struct {
 		name             string
 		monsters         []creat.Creature
@@ -2066,7 +2094,777 @@ func TestApplyDamageToMonsters(t *testing.T) {
 		rng              dice.RNG
 		want             []creat.Creature
 	}{
-		// TODO:
+		{
+			name:             "EmptyMonsters",
+			monsters:         []creat.Creature{},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 4}},
+			rng:              maxRNG{},
+			want:             []creat.Creature{},
+		},
+		{
+			name:             "NilMonsters",
+			monsters:         nil,
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 4}},
+			rng:              maxRNG{},
+			want:             nil,
+		},
+		{
+			name:             "EmptyDamage",
+			monsters:         []creat.Creature{monster},
+			damageToMonsters: []damage{},
+			rng:              maxRNG{},
+			want:             []creat.Creature{monster},
+		},
+		{
+			name:             "NilDamage",
+			monsters:         []creat.Creature{monster},
+			damageToMonsters: nil,
+			rng:              maxRNG{},
+			want:             []creat.Creature{monster},
+		},
+		{
+			name:             "NilRNG",
+			monsters:         []creat.Creature{monster},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 4}},
+			rng:              nil,
+			want:             []creat.Creature{monster},
+		},
+		{
+			name:     "MonstersShorterThanDamage",
+			monsters: []creat.Creature{monster},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 4},
+				{characteristic: atk.DEX, value: 2},
+			},
+			rng:  maxRNG{},
+			want: []creat.Creature{monster},
+		},
+		{
+			name: "MonstersLongerThanDamage",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 4}},
+			rng:              maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "AllMonstersOut",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 4},
+				{characteristic: atk.STR, value: 4},
+			},
+			rng: maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 0, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name:             "AllDamageZero",
+			monsters:         []creat.Creature{monster},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 0}},
+			rng:              maxRNG{},
+			want:             []creat.Creature{monster},
+		},
+		{
+			name: "DamageToSTRReducesHP",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 2,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 3},
+				{characteristic: atk.STR, value: 4},
+			},
+			rng: maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 1, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 0, Armor: 2,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToSTRSuccessfulSave",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 7}},
+			rng:              minRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 5, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToSTRFailedSave",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 7}},
+			rng:              maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToSTRKills",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 12},
+				{characteristic: atk.STR, value: 15},
+			},
+			rng: maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToDEX",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.DEX, value: 8}},
+			rng:              maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 6, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "DamageToWIL",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.WIL, value: 7}},
+			rng:              maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 1, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "LoneFoeSuccessfulWILSaveWhenHPReducedToExactlyZero",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 4}},
+			rng:              minRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "LoneFoeFailedWILSaveWhenHPReducedToExactlyZero",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 4}},
+			rng:              maxRNG{},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "LoneFoeSuccessfulWILSaveWhenHPReducedToZeroAndSTRSaveSuccessful",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 6}},
+			rng:              &sequenceRNG{seq: []uint{5, 7}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 6, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "LoneFoeFailedWILSaveWhenHPReducedToZeroAndSTRSaveSuccessful",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{{characteristic: atk.STR, value: 6}},
+			rng:              &sequenceRNG{seq: []uint{5, 8}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "SuccessfulWILSaveAfterFirstCasualty",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 7, 7}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "MixedWILSaveAfterFirstCasualty",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 8, 7}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "FailedWILSaveAfterFirstCasualty",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 8, 9}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "SuccessfulWILSaveAfterLosingHalfOfTheNumberEven",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 7, 7}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "MixedWILSaveAfterLosingHalfOfTheNumberEven",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 7, 8}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "FailedWILSaveAfterLosingHalfOfTheNumberEven",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 8, 9}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "SuccessfulWILSaveAfterLosingHalfOfTheNumberOdd",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 7}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "MixedWILSaveAfterLosingHalfOfTheNumberOdd",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-4", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 6, 8, 7}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-3", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-4", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
+		{
+			name: "FailedWILSaveAfterLosingHalfOfTheNumberOdd",
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			damageToMonsters: []damage{
+				{characteristic: atk.STR, value: 0},
+				{characteristic: atk.STR, value: 6},
+				{characteristic: atk.STR, value: 0},
+			},
+			rng: &sequenceRNG{seq: []uint{6, 8}, idx: 0},
+			want: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 0, DEX: 14, WIL: 8, HP: 0, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

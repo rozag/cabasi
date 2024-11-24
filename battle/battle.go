@@ -521,16 +521,112 @@ func applyDamageToMonsters(
 	damageToMonsters []damage,
 	rng dice.RNG,
 ) {
-	// TODO:
-	// • Enemies must pass a WIL save to avoid fleeing when they take their
-	//   first casualty and again when they lose half their number.
-	// • Some groups may use their leader’s WIL in place of their own.
-	// • Lone foes must save when they’re reduced to 0 HP.
+	totalCnt := len(monsters)
 
-	// TODO: handle fleeing (as reducing STR to 0)
+	aliveCntBefore := 0
+	for _, monster := range monsters {
+		if !monster.IsOut() {
+			aliveCntBefore++
+		}
+	}
 
-	// TODO: dead, incapacitated, or fleeing creatures have either their STR set
-	// to 0 on attack resolve or have DEX or WIL as 0 because of some effect
+	if totalCnt == 0 ||
+		len(damageToMonsters) == 0 ||
+		totalCnt != len(damageToMonsters) ||
+		aliveCntBefore == 0 ||
+		rng == nil {
+		return
+	}
+
+	for monsterIdx := range monsters {
+		if monsters[monsterIdx].IsOut() {
+			continue
+		}
+
+		value := damageToMonsters[monsterIdx].value
+		if value == 0 {
+			continue
+		}
+
+		switch c := damageToMonsters[monsterIdx].characteristic; c {
+		case atk.STR:
+			if value <= monsters[monsterIdx].HP {
+				monsters[monsterIdx].HP -= value
+
+				if monsters[monsterIdx].HP == 0 &&
+					totalCnt == 1 &&
+					dice.D20.Roll(rng) > monsters[monsterIdx].WIL {
+					// lone foe fleeing rules as HP is reduced to exactly 0
+					monsters[monsterIdx].STR = 0
+				}
+
+				continue
+			}
+
+			value -= monsters[monsterIdx].HP
+			monsters[monsterIdx].HP = 0
+
+			if value >= monsters[monsterIdx].STR {
+				monsters[monsterIdx].STR = 0
+				continue
+			}
+
+			monsters[monsterIdx].STR -= value
+			if dice.D20.Roll(rng) > monsters[monsterIdx].STR {
+				monsters[monsterIdx].STR = 0
+				continue
+			}
+
+			if totalCnt == 1 && dice.D20.Roll(rng) > monsters[monsterIdx].WIL {
+				// lone foe fleeing rules as HP is reduced below 0
+				monsters[monsterIdx].STR = 0
+				continue
+			}
+
+		case atk.DEX:
+			monsters[monsterIdx].DEX -= value
+
+		case atk.WIL:
+			monsters[monsterIdx].WIL -= value
+
+		default:
+			panic(fmt.Errorf("unknown Characteristic: %d", c))
+		}
+	}
+
+	aliveCntAfter := 0
+	for _, monster := range monsters {
+		if !monster.IsOut() {
+			aliveCntAfter++
+		}
+	}
+
+	if totalCnt <= 1 {
+		// lone foes have their own fleeing rules
+		return
+	}
+
+	// Suppressing mnd "Magic number: 2, in <operation> detected" because it's
+	// clear that half the number of creatures requires some division by 2.
+	halfCnt := totalCnt / 2 //nolint:mnd
+	if totalCnt%2 != 0 {
+		halfCnt++
+	}
+
+	isFirstCasualty := aliveCntBefore == totalCnt && aliveCntAfter < totalCnt
+	haveLostHalfNumber := aliveCntBefore >= halfCnt && aliveCntAfter <= halfCnt
+	if isFirstCasualty || haveLostHalfNumber {
+		for monsterIdx := range monsters {
+			if monsters[monsterIdx].IsOut() {
+				continue
+			}
+
+			if dice.D20.Roll(rng) > monsters[monsterIdx].WIL {
+				monsters[monsterIdx].HP = 0
+				monsters[monsterIdx].STR = 0
+			}
+		}
+	}
 }
 
 // allOut returns true if all creatures are out.
