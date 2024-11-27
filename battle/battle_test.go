@@ -312,6 +312,277 @@ func TestRunDoesNotMutateCreatures(t *testing.T) {
 	}
 }
 
+func TestRunSmoke(t *testing.T) {
+	spear := atk.Attack{
+		Name: "Spear", TargetCharacteristic: atk.STR,
+		Dice: dice.D6, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	lsword := atk.Attack{
+		Name: "Long Sword", TargetCharacteristic: atk.STR,
+		Dice: dice.D10, DiceCnt: 1, Charges: -1,
+		IsBlast: false,
+	}
+	tests := []struct {
+		name              string
+		rng               dice.RNG
+		players, monsters []creat.Creature
+		want              bool
+	}{
+		{
+			name: "MightierPlayersAlwaysWinHighRolls",
+			rng:  maxRNG{},
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "MightierPlayersAlwaysWinLowRolls",
+			rng:  minRNG{},
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 1,
+					IsDetachment: false,
+				},
+			},
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "MightierMonstersAlwaysWinHighRolls",
+			rng:  maxRNG{},
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 18, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 18, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 18, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: false,
+		},
+		{
+			name: "MightierMonstersAlwaysWinLowRolls",
+			rng:  minRNG{},
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 18, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 18, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{lsword},
+					STR: 8, DEX: 14, WIL: 8, HP: 18, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: false,
+		},
+		{
+			name: "PlayersEqualToMonstersAlwaysWinHighRolls",
+			rng:  maxRNG{},
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "PlayersEqualToMonstersAlwaysWinLowRolls",
+			rng:  minRNG{},
+			players: []creat.Creature{
+				{
+					ID: "player-0", Name: "John Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-1", Name: "Jane Appleseed", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "player-2", Name: "John Doe", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			monsters: []creat.Creature{
+				{
+					ID: "monster-0", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-1", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+				{
+					ID: "monster-2", Name: "Root Goblin", Attacks: []atk.Attack{spear},
+					STR: 8, DEX: 14, WIL: 8, HP: 4, Armor: 0,
+					IsDetachment: false,
+				},
+			},
+			want: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			b, err := New(test.rng, pickatk.MaxDmg, picktargets.FirstAlive)
+			if err != nil {
+				t.Fatalf("New(): want nil error, got %v", err)
+			}
+
+			got, err := b.Run(test.players, test.monsters)
+			if err != nil {
+				t.Fatalf("Run(): want nil error, got %v", err)
+			}
+
+			if got != test.want {
+				t.Fatalf("Run(): want %t, got %t", test.want, got)
+			}
+		})
+	}
+}
+
 func TestAssignAttackers(t *testing.T) {
 	tests := []struct {
 		name       string
